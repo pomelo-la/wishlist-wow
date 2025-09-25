@@ -249,3 +249,126 @@
   Query: ?quarter=Q1&format=pdf
   Response: File download
 
+//Chat de Intake
+
+  // Chat conversacional guiado con LLM
+  POST /api/intake/chat
+  Body: {
+    message: string;
+    sessionId: string;
+    currentSection: 'context' | 'scope' | 'economic' | 'experience' | 'innovation' | 'dependencies';
+    conversationHistory: {
+      id: string;
+      type: 'bot' | 'user';
+      content: string;
+      section: string;
+      timestamp: Date;
+    }[];
+    partialData: {
+      problem?: string;
+      client?: string;
+      urgency?: string;
+      category?: string;
+      vertical?: string;
+      countries?: string[];
+      clientType?: string;
+      economicImpact?: string;
+      businessCase?: string;
+      experienceImpact?: string[];
+      innovation?: string;
+      dependencies?: string;
+      risks?: string;
+    };
+  }
+  Response: {
+    reply: string;
+    nextQuestion?: string;
+    nextSection?: string;
+    sectionComplete: boolean;
+    allSectionsComplete: boolean;
+    extractedData?: Partial<Initiative>;
+  }
+
+  // Generar resumen ejecutivo final
+  POST /api/intake/generate-summary
+  Body: {
+    sessionId: string;
+    conversationHistory: Message[];
+    extractedData: {
+      problem: string;
+      client: string;
+      urgency: string;
+      category: string;
+      vertical: string;
+      countries: string[];
+      clientType: string;
+      economicImpact: string;
+      businessCase: string;
+      experienceImpact: string[];
+      innovation: string;
+      dependencies: string;
+      risks: string;
+    };
+  }
+  Response: {
+    executiveSummary: string;
+    title: string;
+    structuredData: Omit<Initiative, 'id' | 'createdAt' | 'updatedAt'>;
+  }
+
+  // Validar resumen y crear iniciativa
+  POST /api/intake/finalize
+  Body: {
+    sessionId: string;
+    executiveSummary: string;
+    title: string;
+    structuredData: Omit<Initiative, 'id' | 'createdAt' | 'updatedAt'>;
+    validatedByUser: boolean;
+    createdBy: string;
+  }
+  Response: Initiative
+
+  // Obtener sesion de intake existente
+  GET /api/intake/sessions/[sessionId]
+  Response: {
+    sessionId: string;
+    conversationHistory: Message[];
+    partialData: any;
+    currentSection: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }
+
+//Chat de Evaluacion Adicional
+
+  // Comando /resumen para consolidar contexto con LLM
+  POST /api/initiatives/[id]/messages/consolidate
+  Body: {
+    requestedBy: string;
+    messagesContext: string[];
+  }
+  Response: {
+    consolidatedMessage: {
+      id: string;
+      initiativeId: string;
+      author: 'system';
+      role: 'system';
+      content: string;
+      tags: ['resumen'];
+      timestamp: Date;
+    };
+    keyFindings: {
+      risks: string[];
+      dependencies: string[];
+      benchmarks: string[];
+      estimations: string[];
+    };
+  }
+
+  // Marcar mensaje como leido
+  PATCH /api/initiatives/[id]/messages/[messageId]/read
+  Body: {
+    readBy: string;
+  }
+  Response: { success: boolean }
+
