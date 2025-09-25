@@ -14,11 +14,15 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
       <div className="flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center">
-          <div className="bg-blue-600 p-2 rounded-lg mr-3">
-            <BarChart3 size={24} className="text-white" />
+          <div className="mr-3">
+            <img 
+              src="/wishlist-logo.svg" 
+              alt="Wishlist Logo" 
+              className="w-10 h-10"
+            />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">FinTech Initiatives</h1>
+            <h1 className="text-xl font-bold text-gray-900">Wishlist-wow</h1>
             <p className="text-sm text-gray-500">Gestión de iniciativas</p>
           </div>
         </div>

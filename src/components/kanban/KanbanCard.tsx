@@ -2,6 +2,7 @@
 
 import { Initiative } from '@/types/initiative';
 import { Calendar, User, Target, CheckCircle, ArrowRight, Eye } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface KanbanCardProps {
   initiative: Initiative;
@@ -10,6 +11,7 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ initiative, onStatusChange, onViewDetails }: KanbanCardProps) {
+  const router = useRouter();
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'mandates': return 'bg-red-100 text-red-800';
@@ -100,9 +102,9 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
   const availableActions = getAvailableActions();
 
   const handleCardClick = () => {
-    // Open evaluation view for initiatives in review states
-    if (['business-review', 'product-review'].includes(initiative.status)) {
-      onViewDetails?.(initiative.id);
+    // Navigate to dedicated evaluation page
+    if (['loaded', 'business-review', 'product-review'].includes(initiative.status)) {
+      router.push(`/initiative/${initiative.id}`);
     }
   };
 

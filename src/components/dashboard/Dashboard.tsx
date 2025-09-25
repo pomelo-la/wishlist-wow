@@ -136,6 +136,15 @@ export default function Dashboard() {
                   legend: {
                     position: 'bottom',
                   },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return `${context.label}: ${percentage}%`;
+                      }
+                    }
+                  }
                 },
               }} 
             />
