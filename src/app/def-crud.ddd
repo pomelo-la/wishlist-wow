@@ -1,0 +1,251 @@
+ //Initiatives CRUD
+
+  // Listar iniciativas con filtros
+  GET /api/initiatives
+  Query: ?product=core&country=BR&status=loaded&minScore=80&createdBy=user123
+  Response: Initiative[]
+
+  // Obtener iniciativa específica con mensajes
+  GET /api/initiatives/[id]
+  Response: Initiative & { reviewMessages: ReviewMessage[] }
+
+  // Crear nueva iniciativa (desde intake chat)
+  POST /api/initiatives
+  Body: {
+    title: string;
+    summary: string;
+    category: 'mandates' | 'performance' | 'value-prop' | 'new-product';
+    vertical: 'processing' | 'core' | 'bin-sponsor' | 'card-mgmt' | 'tokenization' | 'fraud' | 'platform';
+    country: 'AR' | 'BR' | 'MX' | 'CL' | 'CO' | 'ROLA' | 'cross-country';
+    clientType: 'all' | 'top-issuer' | 'tier1' | 'tier2' | 'tier3';
+    economicImpact: 'significant' | 'moderate' | 'low';
+    innovationLevel: 'disruptive' | 'incremental' | 'parity';
+    createdBy: string;
+  }
+  Response: Initiative
+
+  // Actualizar campos de iniciativa
+  PATCH /api/initiatives/[id]
+  Body: {
+    status?: string;
+    effortEstimate?: number;
+    confidence?: number;
+    quarter?: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+    score?: number;
+    updatedBy: string;
+  }
+  Response: Initiative
+
+  // Eliminar iniciativa
+  DELETE /api/initiatives/[id]
+  Body: { deletedBy: string }
+  Response: { success: boolean }
+
+//Status Transitions
+
+  // Cambiar estado de iniciativa con campos estructurados
+  POST /api/initiatives/[id]/transition
+  Body: {
+    newStatus: 'draft' | 'loaded' | 'business-review' | 'product-review' | 'closure' | 'scoring' |
+  'prioritized' | 'archived';
+    updatedBy: string;
+    structuredFields?: {
+      effortDays?: number;
+      confidence?: number;
+      quarter?: string;
+      benchmarks?: string;
+      uncoveredCases?: string;
+      regulatoryNotes?: string;
+      risks?: string[];
+      dependencies?: string[];
+    };
+  }
+  Response: Initiative
+
+  // Obtener historial de cambios de estado
+  GET /api/initiatives/[id]/history
+  Response: {
+    id: string;
+    initiativeId: string;
+    fromStatus: string;
+    toStatus: string;
+    changedBy: string;
+    changedAt: Date;
+    reason?: string;
+  }[]
+
+  //Review Messages
+
+  // Crear mensaje de evaluación
+  POST /api/initiatives/[id]/messages
+  Body: {
+    author: string;
+    role: 'business' | 'product' | 'tech' | 'ux';
+    content: string;
+    tags: string[];
+  }
+  Response: ReviewMessage
+
+  // Obtener mensajes de evaluación
+  GET /api/initiatives/[id]/messages
+  Response: ReviewMessage[]
+
+  // Actualizar mensaje
+  PATCH /api/initiatives/[id]/messages/[messageId]
+  Body: {
+    content: string;
+    tags: string[];
+    updatedBy: string;
+  }
+  Response: ReviewMessage
+
+  // Eliminar mensaje
+  DELETE /api/initiatives/[id]/messages/[messageId]
+  Body: { deletedBy: string }
+  Response: { success: boolean }
+
+//Dashboard & Analytics
+
+  // Métricas generales del dashboard
+  GET /api/dashboard/metrics
+  Query: ?dateFrom=2024-01-01&dateTo=2024-12-31&country=BR&vertical=core
+  Response: {
+    total: number;
+    loaded: number;
+    businessReview: number;
+    productReview: number;
+    closure: number;
+    scoring: number;
+    prioritized: number;
+    archived: number;
+    byCountry: { [country: string]: number };
+    byVertical: { [vertical: string]: number };
+    byCategory: { [category: string]: number };
+  }
+
+  // Datos para gráficos del dashboard
+  GET /api/dashboard/charts
+  Query: ?dateFrom=2024-01-01&dateTo=2024-12-31
+  Response: {
+    categoryData: {
+      labels: string[];
+      data: number[];
+    };
+    quarterData: {
+      labels: string[];
+      data: number[];
+    };
+    verticalCountryMatrix: {
+      verticals: string[];
+      countries: string[];
+      data: number[][];
+    };
+    statusOverTime: {
+      dates: string[];
+      datasets: {
+        label: string;
+        data: number[];
+      }[];
+    };
+  }
+
+  // Top iniciativas por score
+  GET /api/dashboard/top-initiatives
+  Query: ?limit=10&quarter=Q1
+  Response: {
+    id: string;
+    title: string;
+    score: number;
+    status: string;
+    quarter: string;
+    vertical: string;
+    country: string;
+  }[]
+
+//Catalog Data
+
+  // Obtener catálogos para dropdowns
+  GET /api/catalogs
+  Response: {
+    categories: { value: string; label: string }[];
+    verticals: { value: string; label: string }[];
+    countries: { value: string; label: string }[];
+    clientTypes: { value: string; label: string }[];
+    quarters: { value: string; label: string }[];
+  }
+
+  //Scoring & Matrix
+
+  // Calcular score automático de iniciativa
+  POST /api/initiatives/[id]/calculate-score
+  Body: {
+    calculatedBy: string;
+    forceRecalculation?: boolean;
+  }
+  Response: {
+    initiative: Initiative;
+    scoreBreakdown: {
+      category: number;
+      vertical: number;
+      clientType: number;
+      country: number;
+      economicImpact: number;
+      experienceImpact: number;
+      innovation: number;
+      riskScore: number;
+      total: number;
+    };
+    appliedRules: string[];
+  }
+
+  // Obtener configuración de matriz de decisión
+  GET /api/scoring/matrix-config
+  Response: {
+    categoryWeights: { [key: string]: number };
+    verticalWeights: { [key: string]: number };
+    countryWeights: { [key: string]: number };
+    // ... otros pesos
+  }
+
+  // Actualizar configuración de matriz (solo admin)
+  PATCH /api/scoring/matrix-config
+  Body: {
+    categoryWeights?: { [key: string]: number };
+    verticalWeights?: { [key: string]: number };
+    updatedBy: string;
+  }
+  Response: { success: boolean }
+
+  //User & Auth Context
+  // Obtener perfil del usuario actual
+  GET /api/auth/profile
+  Response: {
+    id: string;
+    name: string;
+    email: string;
+    role: 'creator' | 'business' | 'product' | 'tech' | 'ux' | 'owner' | 'admin';
+    permissions: string[];
+  }
+
+  // Obtener usuarios para asignaciones
+  GET /api/users
+  Query: ?role=business&active=true
+  Response: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  }[]
+
+  //Export & Reports
+
+  // Exportar iniciativas a CSV/PDF
+  GET /api/export/initiatives
+  Query: ?format=csv&status=prioritized&quarter=Q1
+  Response: File download
+
+  // Generar reporte ejecutivo
+  GET /api/reports/executive
+  Query: ?quarter=Q1&format=pdf
+  Response: File download
+

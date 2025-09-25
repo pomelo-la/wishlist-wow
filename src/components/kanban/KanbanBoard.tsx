@@ -3,10 +3,56 @@
 import { useState } from 'react';
 import { mockInitiatives } from '@/data/mockData';
 import KanbanCard from './KanbanCard';
+import EvaluationView from '@/components/evaluation/EvaluationView';
 import { Plus } from 'lucide-react';
+import { Initiative } from '@/types/initiative';
 
 export default function KanbanBoard() {
-  const [initiatives] = useState(mockInitiatives);
+  const [initiatives, setInitiatives] = useState(mockInitiatives);
+  const [selectedInitiativeForEvaluation, setSelectedInitiativeForEvaluation] = useState<Initiative | null>(null);
+
+  const handleStatusChange = (initiativeId: string, newStatus: string) => {
+    setInitiatives(prev => 
+      prev.map(initiative => 
+        initiative.id === initiativeId 
+          ? { ...initiative, status: newStatus as any, updatedAt: new Date() }
+          : initiative
+      )
+    );
+  };
+
+  const handleViewDetails = (initiativeId: string) => {
+    const initiative = initiatives.find(i => i.id === initiativeId);
+    if (initiative) {
+      setSelectedInitiativeForEvaluation(initiative);
+    }
+  };
+
+  const handleCloseEvaluation = () => {
+    setSelectedInitiativeForEvaluation(null);
+  };
+
+  const handleEvaluationStatusChange = (newStatus: string, updatedFields?: any) => {
+    if (selectedInitiativeForEvaluation) {
+      setInitiatives(prev => 
+        prev.map(initiative => 
+          initiative.id === selectedInitiativeForEvaluation.id 
+            ? { 
+                ...initiative, 
+                status: newStatus as any, 
+                updatedAt: new Date(),
+                // Update structured fields if provided
+                ...(updatedFields && {
+                  effortEstimate: updatedFields.effortDays,
+                  confidence: updatedFields.confidence,
+                  quarter: updatedFields.quarter
+                })
+              }
+            : initiative
+        )
+      );
+    }
+  };
 
   const statusConfig = [
     {
@@ -90,6 +136,8 @@ export default function KanbanBoard() {
                     <KanbanCard
                       key={initiative.id}
                       initiative={initiative}
+                      onStatusChange={handleStatusChange}
+                      onViewDetails={handleViewDetails}
                     />
                   ))
                 )}
@@ -98,6 +146,15 @@ export default function KanbanBoard() {
           );
         })}
       </div>
+      
+      {/* Evaluation Modal */}
+      {selectedInitiativeForEvaluation && (
+        <EvaluationView
+          initiative={selectedInitiativeForEvaluation}
+          onClose={handleCloseEvaluation}
+          onStatusChange={handleEvaluationStatusChange}
+        />
+      )}
     </div>
   );
 }

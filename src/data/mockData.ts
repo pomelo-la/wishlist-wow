@@ -14,7 +14,7 @@ export const mockInitiatives: Initiative[] = [
     innovationLevel: 'incremental',
     score: 85,
     quarter: 'Q2',
-    effortEstimate: 'M',
+    effortEstimate: 15, // días
     confidence: 80,
     createdBy: 'Juan Pérez',
     createdAt: new Date('2024-01-15'),
@@ -33,7 +33,7 @@ export const mockInitiatives: Initiative[] = [
     innovationLevel: 'disruptive',
     score: 92,
     quarter: 'Q1',
-    effortEstimate: 'XL',
+    effortEstimate: 45, // días
     confidence: 65,
     createdBy: 'María García',
     createdAt: new Date('2024-01-10'),
@@ -52,7 +52,7 @@ export const mockInitiatives: Initiative[] = [
     innovationLevel: 'incremental',
     score: 78,
     quarter: 'Q1',
-    effortEstimate: 'L',
+    effortEstimate: 25, // días
     confidence: 90,
     createdBy: 'Carlos López',
     createdAt: new Date('2024-01-05'),
@@ -71,7 +71,7 @@ export const mockInitiatives: Initiative[] = [
     innovationLevel: 'parity',
     score: 95,
     quarter: 'Q1',
-    effortEstimate: 'L',
+    effortEstimate: 25, // días
     confidence: 95,
     createdBy: 'Ana Silva',
     createdAt: new Date('2024-02-01'),
@@ -90,7 +90,7 @@ export const mockInitiatives: Initiative[] = [
     innovationLevel: 'incremental',
     score: 70,
     quarter: 'Q2',
-    effortEstimate: 'M',
+    effortEstimate: 15, // días
     confidence: 85,
     createdBy: 'Luis Rodríguez',
     createdAt: new Date('2024-01-20'),

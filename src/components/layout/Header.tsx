@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, Columns, User } from 'lucide-react';
+import { BarChart3, Columns, User, Plus } from 'lucide-react';
 
 interface HeaderProps {
-  activeView: 'dashboard' | 'kanban';
-  onViewChange: (view: 'dashboard' | 'kanban') => void;
+  activeView: 'dashboard' | 'kanban' | 'intake';
+  onViewChange: (view: 'dashboard' | 'kanban' | 'intake') => void;
 }
 
 export default function Header({ activeView, onViewChange }: HeaderProps) {
@@ -46,6 +46,17 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
           >
             <Columns size={18} className="mr-2" />
             Kanban
+          </button>
+          <button
+            onClick={() => onViewChange('intake')}
+            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeView === 'intake'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Plus size={18} className="mr-2" />
+            Nueva Iniciativa
           </button>
         </nav>
 

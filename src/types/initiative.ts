@@ -11,7 +11,7 @@ export interface Initiative {
   innovationLevel: 'disruptive' | 'incremental' | 'parity';
   score?: number;
   quarter?: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-  effortEstimate?: 'S' | 'M' | 'L' | 'XL';
+  effortEstimate?: number; // días de developer
   confidence?: number;
   createdBy: string;
   createdAt: Date;
