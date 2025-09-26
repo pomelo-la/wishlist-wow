@@ -11,21 +11,21 @@ import (
 	"gorm.io/gorm"
 )
 
-type InitiativeHandler struct {
+type InitiativeV2Handler struct {
 	db *gorm.DB
 }
 
-func NewInitiativeHandler(db *gorm.DB) *InitiativeHandler {
-	return &InitiativeHandler{db: db}
+func NewInitiativeV2Handler(db *gorm.DB) *InitiativeV2Handler {
+	return &InitiativeV2Handler{db: db}
 }
 
-// CreateInitiative creates a new initiative
-func (h *InitiativeHandler) CreateInitiative(c *gin.Context) {
+// CreateInitiativeV2 creates a new initiative with the new structure
+func (h *InitiativeV2Handler) CreateInitiativeV2(c *gin.Context) {
 	var req struct {
 		Title                     string  `json:"title" binding:"required"`
 		Description               string  `json:"description"`
-		Status                    string  `json:"status"`
-		CreatedBy                 string  `json:"createdBy"`
+		Status                    string  `json:"status" binding:"required"`
+		CreatedBy                 string  `json:"createdBy" binding:"required"`
 		Quarter                   string  `json:"quarter"`
 		Score                     float64 `json:"score"`
 		Category                  string  `json:"category"`
@@ -35,7 +35,7 @@ func (h *InitiativeHandler) CreateInitiative(c *gin.Context) {
 		SystemicRisk              string  `json:"systemicRisk"`
 		EconomicImpact            string  `json:"economicImpact"`
 		EconomicImpactDescription string  `json:"economicImpactDescription"`
-		ExperienceImpact          string  `json:"experienceImpact"`
+		ExperienceImpact          string  `json:"experienceImpact"` // JSON array as string
 		CompetitiveApproach       string  `json:"competitiveApproach"`
 		ExecutiveSummary          string  `json:"executiveSummary"`
 		ROI                       float64 `json:"roi"`
@@ -46,25 +46,10 @@ func (h *InitiativeHandler) CreateInitiative(c *gin.Context) {
 		return
 	}
 
-	// Get user from context (set by auth middleware)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		// For development/testing, use a default user ID
-		userID = uuid.MustParse("631ec508-c4f6-4a04-abd4-4f7c125176c6") // Test user ID
-	}
-
-	// Set default values
-	if req.Status == "" {
-		req.Status = "draft"
-	}
-	if req.CreatedBy == "" {
-		req.CreatedBy = userID.(uuid.UUID).String()
-	}
-
 	// Generate UUID for ID
 	id := uuid.New().String()
 
-	initiative := domain.Initiative{
+	initiative := domain.InitiativeV2{
 		ID:                        id,
 		Title:                     req.Title,
 		Description:               req.Description,
@@ -98,9 +83,9 @@ func (h *InitiativeHandler) CreateInitiative(c *gin.Context) {
 	})
 }
 
-// GetInitiatives gets all initiatives
-func (h *InitiativeHandler) GetInitiatives(c *gin.Context) {
-	var initiatives []domain.Initiative
+// GetInitiativesV2 gets all initiatives with the new structure
+func (h *InitiativeV2Handler) GetInitiativesV2(c *gin.Context) {
+	var initiatives []domain.InitiativeV2
 	if err := h.db.Find(&initiatives).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch initiatives"})
 		return
@@ -108,11 +93,11 @@ func (h *InitiativeHandler) GetInitiatives(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": initiatives})
 }
 
-// GetInitiative gets an initiative by ID
-func (h *InitiativeHandler) GetInitiative(c *gin.Context) {
+// GetInitiativeV2 gets an initiative by ID
+func (h *InitiativeV2Handler) GetInitiativeV2(c *gin.Context) {
 	id := c.Param("id")
 
-	var initiative domain.Initiative
+	var initiative domain.InitiativeV2
 	if err := h.db.Where("id = ?", id).First(&initiative).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Initiative not found"})
 		return
@@ -120,8 +105,8 @@ func (h *InitiativeHandler) GetInitiative(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": initiative})
 }
 
-// UpdateInitiative updates an existing initiative
-func (h *InitiativeHandler) UpdateInitiative(c *gin.Context) {
+// UpdateInitiativeV2 updates an existing initiative
+func (h *InitiativeV2Handler) UpdateInitiativeV2(c *gin.Context) {
 	id := c.Param("id")
 
 	var req struct {
@@ -148,7 +133,7 @@ func (h *InitiativeHandler) UpdateInitiative(c *gin.Context) {
 		return
 	}
 
-	var initiative domain.Initiative
+	var initiative domain.InitiativeV2
 	if err := h.db.Where("id = ?", id).First(&initiative).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Initiative not found"})
 		return
@@ -181,77 +166,14 @@ func (h *InitiativeHandler) UpdateInitiative(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Initiative updated successfully", "data": initiative})
 }
 
-// DeleteInitiative deletes an initiative
-func (h *InitiativeHandler) DeleteInitiative(c *gin.Context) {
+// DeleteInitiativeV2 deletes an initiative
+func (h *InitiativeV2Handler) DeleteInitiativeV2(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.db.Where("id = ?", id).Delete(&domain.Initiative{}).Error; err != nil {
+	if err := h.db.Where("id = ?", id).Delete(&domain.InitiativeV2{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete initiative"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Initiative deleted successfully"})
-}
-
-// UpdateStatus updates the status of an initiative
-func (h *InitiativeHandler) UpdateStatus(c *gin.Context) {
-	id := c.Param("id")
-
-	var req struct {
-		Status string `json:"status" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var initiative domain.Initiative
-	if err := h.db.Where("id = ?", id).First(&initiative).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Initiative not found"})
-		return
-	}
-
-	initiative.Status = req.Status
-	initiative.UpdatedAt = time.Now()
-
-	if err := h.db.Save(&initiative).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Status updated successfully", "data": initiative})
-}
-
-// CalculateScore calculates the score for an initiative
-func (h *InitiativeHandler) CalculateScore(c *gin.Context) {
-	id := c.Param("id")
-
-	var initiative domain.Initiative
-	if err := h.db.Where("id = ?", id).First(&initiative).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Initiative not found"})
-		return
-	}
-
-	// For now, just return a placeholder score
-	// TODO: Implement actual scoring logic
-	initiative.Score = 75.0
-	initiative.UpdatedAt = time.Now()
-
-	if err := h.db.Save(&initiative).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate score"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Score calculated successfully", "data": initiative})
-}
-
-// GetPrioritizedInitiatives gets initiatives ordered by score
-func (h *InitiativeHandler) GetPrioritizedInitiatives(c *gin.Context) {
-	var initiatives []domain.Initiative
-	if err := h.db.Order("score DESC").Find(&initiatives).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch prioritized initiatives"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"data": initiatives})
 }

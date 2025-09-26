@@ -45,6 +45,8 @@ func migrate(db *gorm.DB) error {
 		&domain.Message{},
 		&domain.Suggestion{},
 		&domain.AuditLog{},
+		&domain.SimpleInitiative{},
+		&domain.InitiativeV2{}, // Added new model for migration
 	)
 }
 
