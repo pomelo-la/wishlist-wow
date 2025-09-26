@@ -40,8 +40,12 @@ func NewAgentService(scoringService ScoringService) *AgentService {
 	fmt.Printf("DEBUG: CLOUDFLARE_AI_GATEWAY_TOKEN loaded: %s\n", gatewayToken)
 	fmt.Printf("DEBUG: CLOUDFLARE_AI_GATEWAY_URL loaded: %s\n", gatewayURL)
 
-	if gatewayToken == "" || gatewayURL == "" {
-		panic("Missing required environment variables: CLOUDFLARE_AI_GATEWAY_TOKEN and CLOUDFLARE_AI_GATEWAY_URL")
+	if gatewayToken == "" || gatewayURL == "" || gatewayToken == "tu_token_aqui" || strings.Contains(gatewayURL, "tu_account_id") {
+		fmt.Printf("WARNING: Cloudflare AI Gateway not configured, using mock responses\n")
+		return &AgentService{
+			scoringService: scoringService,
+			openaiClient:   nil, // Will use mock responses
+		}
 	}
 
 	// Use Cloudflare AI Gateway with custom HTTP client
@@ -169,6 +173,11 @@ func (a *AgentService) callOpenAI(ctx context.Context, systemPrompt, userPrompt 
 
 // Intake intervention implementation
 func (a *AgentService) IntakeIntervention(ctx context.Context, req IntakeRequest) (*IntakeResponse, error) {
+	// If no OpenAI client is configured, return mock responses
+	if a.openaiClient == nil {
+		return a.getMockIntakeResponse(req.Step), nil
+	}
+
 	switch req.Step {
 	case "start":
 		return a.startIntake(ctx, req)
@@ -892,6 +901,56 @@ func (a *AgentService) handleConfirmationResponse(ctx context.Context, req Intak
 		NextStep:   "continue",
 		IsComplete: false,
 	}, nil
+}
+
+// Mock response for when AI Gateway is not configured
+func (a *AgentService) getMockIntakeResponse(step string) *IntakeResponse {
+	switch step {
+	case "start":
+		return &IntakeResponse{
+			Questions: []Question{
+				{
+					ID:       "title",
+					Text:     "¿Cuál es el título de tu iniciativa?",
+					Type:     "text",
+					Required: true,
+				},
+				{
+					ID:       "summary",
+					Text:     "Describe brevemente de qué se trata la iniciativa",
+					Type:     "text",
+					Required: true,
+				},
+			},
+			NextStep:   "continue",
+			IsComplete: false,
+		}
+	case "continue":
+		return &IntakeResponse{
+			Questions: []Question{
+				{
+					ID:       "category",
+					Text:     "¿Qué categoría describe mejor tu iniciativa?",
+					Type:     "select",
+					Options:  []string{"mandates", "performance", "value-prop", "new-product"},
+					Required: true,
+				},
+			},
+			NextStep:   "continue",
+			IsComplete: false,
+		}
+	case "validate":
+		return &IntakeResponse{
+			ConfirmationSummary: "Resumen de la iniciativa creada (Mock)",
+			NextStep:            "complete",
+			IsComplete:          true,
+		}
+	default:
+		return &IntakeResponse{
+			NextStep:   "continue",
+			IsComplete: false,
+		}
+	}
 }
 
 // ScoringService interface

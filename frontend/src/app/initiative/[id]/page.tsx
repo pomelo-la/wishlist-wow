@@ -22,7 +22,8 @@ import {
   AlertCircle,
   BarChart2,
   FileText,
-  Percent
+  Percent,
+  ClipboardCheck
 } from 'lucide-react';
 
 interface ReviewMessage {
@@ -53,6 +54,10 @@ export default function InitiativeEvaluationPage() {
     regulatoryNotes: ''
   });
 
+  const [selectedReviewer, setSelectedReviewer] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSendingReview, setIsSendingReview] = useState(false);
+
   useEffect(() => {
     if (params.id) {
       const foundInitiative = mockInitiatives.find(i => i.id === params.id);
@@ -79,6 +84,13 @@ export default function InitiativeEvaluationPage() {
     'regulacion', 'arquitectura', 'ux', 'negocio'
   ];
 
+  const reviewers = [
+    { email: 'carlos@pomelo.la', name: 'Carlos' },
+    { email: 'diego@pomelo.la', name: 'Diego' },
+    { email: 'federico.don@pomelo.la', name: 'Federico' },
+    { email: 'nicolas.gomez@pomelo.la', name: 'Nicolás' }
+  ];
+
   const handleSendMessage = () => {
     if (!currentMessage.trim()) return;
 
@@ -94,6 +106,52 @@ export default function InitiativeEvaluationPage() {
     setReviewMessages(prev => [...prev, newMessage]);
     setCurrentMessage('');
     setSelectedTags([]);
+  };
+
+  const handleSendReview = async () => {
+    if (!selectedReviewer || !reviewComment.trim() || isSendingReview) return;
+
+    setIsSendingReview(true);
+
+    try {
+      // Extraer el nombre de usuario del email (antes del @) y agregar @ al principio
+      const username = '@' + selectedReviewer.split('@')[0];
+      
+      // Crear el mensaje para Slack
+      const message = `🔍 *Nueva revisión de tarjeta*\n\n` +
+        `*Iniciativa:* ${initiative?.title}\n` +
+        `*Estado:* ${initiative?.status.replace('-', ' ')}\n` +
+        `*Categoría:* ${initiative?.category.replace('-', ' ')}\n` +
+        `*País:* ${initiative?.country}\n\n` +
+        `*Comentario:*\n${reviewComment}`;
+
+      // Llamar al backend para enviar el mensaje de Slack
+      const response = await fetch('http://localhost:8080/api/slack/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          channel: username,
+          text: message
+        })
+      });
+
+      if (response.ok) {
+        alert(`✅ Revisión enviada exitosamente a ${selectedReviewer}`);
+        // Limpiar formulario
+        setSelectedReviewer('');
+        setReviewComment('');
+      } else {
+        const error = await response.json();
+        alert(`❌ Error al enviar: ${error.message || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      alert('❌ Error al enviar la revisión. Intenta nuevamente.');
+    } finally {
+      setIsSendingReview(false);
+    }
   };
 
   const handleSaveDraft = () => {
@@ -247,7 +305,8 @@ export default function InitiativeEvaluationPage() {
               { id: 'overview', label: 'Vista General', icon: Eye },
               { id: 'evaluation', label: 'Chat Evaluación', icon: MessageSquare },
               { id: 'fields', label: 'Campos Técnicos', icon: Settings },
-              { id: 'activity', label: 'Actividad', icon: Activity }
+              { id: 'activity', label: 'Actividad', icon: Activity },
+              { id: 'review', label: 'Revisión', icon: ClipboardCheck }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -660,6 +719,98 @@ export default function InitiativeEvaluationPage() {
                         </div>
                         <p className="text-slate-600 text-sm capitalize">{initiative.status.replace('-', ' ')}</p>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'review' && (
+            <div className="lg:col-span-3">
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+                <h3 className="text-2xl font-semibold text-slate-900 mb-6 flex items-center">
+                  <ClipboardCheck size={24} className="mr-3 text-blue-600" />
+                  Crear Revisión de Tarjeta
+                </h3>
+                
+                <div className="space-y-6">
+                  {/* Información de la iniciativa */}
+                  <div className="bg-slate-50 rounded-xl p-6">
+                    <h4 className="text-lg font-semibold text-slate-900 mb-4">Iniciativa a Revisar</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
+                        <p className="text-slate-900 font-medium">{initiative?.title}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+                        <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                          {initiative?.status.replace('-', ' ')}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
+                        <p className="text-slate-900 capitalize">{initiative?.category.replace('-', ' ')}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">País</label>
+                        <p className="text-slate-900">{initiative?.country}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Formulario de revisión */}
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Enviar revisión de tarjeta a
+                      </label>
+                      <select
+                        value={selectedReviewer}
+                        onChange={(e) => setSelectedReviewer(e.target.value)}
+                        className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                      >
+                        <option value="">Seleccionar persona...</option>
+                        {reviewers.map((reviewer) => (
+                          <option key={reviewer.email} value={reviewer.email}>
+                            {reviewer.name} ({reviewer.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Comentario de revisión
+                      </label>
+                      <textarea
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Agregar comentarios sobre la revisión..."
+                        rows={4}
+                        className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-500"
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSendReview}
+                        disabled={!selectedReviewer || !reviewComment.trim() || isSendingReview}
+                        className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
+                      >
+                        {isSendingReview ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Send size={18} className="mr-2" />
+                            Enviar
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>

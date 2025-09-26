@@ -37,6 +37,7 @@ func (s *Server) setupRoutes() {
 	userHandler := handlers.NewUserHandler(s.db, jwtSecret)
 	initiativeHandler := handlers.NewInitiativeHandler(s.db, agentService, scoringService)
 	agentHandler := handlers.NewAgentHandler(s.db, agentService)
+	slackHandler := handlers.NewSlackHandler()
 
 	// Middleware
 	s.router.Use(middleware.CORSMiddleware())
@@ -95,6 +96,12 @@ func (s *Server) setupRoutes() {
 			agent.POST("/intake/complete", agentHandler.CompleteIntake)
 			agent.POST("/estimation", agentHandler.EstimationIntervention)
 			agent.POST("/scoring", agentHandler.ScoringIntervention)
+		}
+
+		// Slack routes
+		slack := api.Group("/slack")
+		{
+			slack.POST("/send-message", slackHandler.SendMessage)
 		}
 
 		// Dashboard and analytics (future endpoints)
