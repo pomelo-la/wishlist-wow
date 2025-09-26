@@ -602,7 +602,8 @@ INSTRUCCIONES PARA EL RESUMEN:
   **BENEFICIOS ESPERADOS**
   [Beneficios mencionados o inferidos lógicamente]
 
-IMPORTANTE: 
+OBLIGATORIO: 
+- SIEMPRE termina el resumen con la pregunta: "¿Te parece correcto este contenido? Responde 'sí' para confirmar o 'no' para modificar."
 - Usa "unknown" para campos categóricos no mencionados
 - Usa arrays vacíos [] para listas no mencionadas  
 - Usa strings vacíos "" para campos de texto no mencionados
@@ -631,16 +632,22 @@ IMPORTANTE:
 		return nil, fmt.Errorf("failed to parse LLM response for confirmation summary: %w", err)
 	}
 
+	// Asegurar que el resumen termine con la pregunta de confirmación
+	confirmationText := llmResponse.ConfirmationSummary
+	if !strings.Contains(confirmationText, "¿Te parece correcto este contenido?") {
+		confirmationText += "\n\n¿Te parece correcto este contenido? Responde 'sí' para confirmar o 'no' para modificar."
+	}
+
 	return &IntakeResponse{
 		Questions: []Question{
 			{
 				ID:       "confirmation",
-				Text:     llmResponse.ConfirmationSummary + "\n\n**¿Qué desea hacer?**\n✅ **'confirmar'** - Crear la iniciativa\n➕ **'continuar'** - Refinar más detalles\n✏️ **'modificar'** - Cambiar información",
+				Text:     confirmationText,
 				Type:     "text",
 				Required: false,
 			},
 		},
-		ConfirmationSummary:  llmResponse.ConfirmationSummary,
+		ConfirmationSummary:  confirmationText,
 		ExtractedData:        llmResponse.ExtractedData,
 		NextStep:             llmResponse.NextStep,
 		IsComplete:           llmResponse.IsComplete,
@@ -823,8 +830,16 @@ func (a *AgentService) handleConfirmationResponse(ctx context.Context, req Intak
 		strings.Contains(userInput, "✅") || strings.Contains(userInput, "si") || strings.Contains(userInput, "sí") {
 		// Usuario quiere confirmar y crear la iniciativa
 		return &IntakeResponse{
-			NextStep:   "validate",
-			IsComplete: false, // Ir a validación final
+			Questions: []Question{
+				{
+					ID:       "initiative_confirmed",
+					Text:     "✅ **Iniciativa confirmada**\n\nLa iniciativa ha sido creada exitosamente. ¿Deseas crear otra iniciativa o realizar alguna otra acción?",
+					Type:     "text",
+					Required: false,
+				},
+			},
+			NextStep:   "complete",
+			IsComplete: true,
 		}, nil
 	}
 
