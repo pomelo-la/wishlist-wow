@@ -54,9 +54,13 @@ export default function InitiativeEvaluationPage() {
     regulatoryNotes: ''
   });
 
-  const [selectedReviewer, setSelectedReviewer] = useState('');
+  const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
   const [reviewComment, setReviewComment] = useState('');
   const [isSendingReview, setIsSendingReview] = useState(false);
+  const [slackUsers, setSlackUsers] = useState<any[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -79,17 +83,48 @@ export default function InitiativeEvaluationPage() {
     }
   }, [params.id]);
 
+  // Cerrar dropdown cuando se hace click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.user-dropdown-container')) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const availableTags = [
     'estimacion', 'benchmark', 'riesgo', 'dependencia', 
     'regulacion', 'arquitectura', 'ux', 'negocio'
   ];
 
-  const reviewers = [
-    { email: 'carlos@pomelo.la', name: 'Carlos' },
-    { email: 'diego@pomelo.la', name: 'Diego' },
-    { email: 'federico.don@pomelo.la', name: 'Federico' },
-    { email: 'nicolas.gomez@pomelo.la', name: 'Nicolás' }
-  ];
+  // Función para cargar usuarios de Slack
+  const loadSlackUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/slack/users');
+      const data = await response.json();
+      if (data.success) {
+        setSlackUsers(data.users || []);
+      } else {
+        console.error('Error loading Slack users:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching Slack users:', error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  // Filtrar usuarios basado en el término de búsqueda
+  const filteredUsers = slackUsers.filter(user => 
+    user.real_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(userSearchTerm.toLowerCase())
+  );
 
   const handleSendMessage = () => {
     if (!currentMessage.trim()) return;
@@ -109,14 +144,11 @@ export default function InitiativeEvaluationPage() {
   };
 
   const handleSendReview = async () => {
-    if (!selectedReviewer || !reviewComment.trim() || isSendingReview) return;
+    if (selectedReviewers.length === 0 || !reviewComment.trim() || isSendingReview) return;
 
     setIsSendingReview(true);
 
     try {
-      // Extraer el nombre de usuario del email (antes del @) y agregar @ al principio
-      const username = '@' + selectedReviewer.split('@')[0];
-      
       // Crear el mensaje para Slack
       const message = `🔍 *Nueva revisión de tarjeta*\n\n` +
         `*Iniciativa:* ${initiative?.title}\n` +
@@ -125,26 +157,32 @@ export default function InitiativeEvaluationPage() {
         `*País:* ${initiative?.country}\n\n` +
         `*Comentario:*\n${reviewComment}`;
 
-      // Llamar al backend para enviar el mensaje de Slack
-      const response = await fetch('http://localhost:8080/api/slack/send-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          channel: username,
-          text: message
-        })
+      // Enviar mensaje a cada usuario seleccionado
+      const promises = selectedReviewers.map(async (userId) => {
+        const response = await fetch('http://localhost:8080/api/slack/send-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            channel: userId,
+            text: message
+          })
+        });
+        return response;
       });
 
-      if (response.ok) {
-        alert(`✅ Revisión enviada exitosamente a ${selectedReviewer}`);
+      const responses = await Promise.all(promises);
+      const successful = responses.filter(r => r.ok).length;
+      
+      if (successful === selectedReviewers.length) {
+        alert(`✅ Revisión enviada exitosamente a ${successful} usuario(s)`);
         // Limpiar formulario
-        setSelectedReviewer('');
+        setSelectedReviewers([]);
         setReviewComment('');
+        setUserSearchTerm('');
       } else {
-        const error = await response.json();
-        alert(`❌ Error al enviar: ${error.message || 'Error desconocido'}`);
+        alert(`⚠️ Revisión enviada a ${successful} de ${selectedReviewers.length} usuarios`);
       }
     } catch (error) {
       console.error('Error enviando mensaje:', error);
@@ -152,6 +190,20 @@ export default function InitiativeEvaluationPage() {
     } finally {
       setIsSendingReview(false);
     }
+  };
+
+  // Función para agregar/quitar usuarios seleccionados
+  const toggleUserSelection = (userId: string) => {
+    setSelectedReviewers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  // Función para remover usuario seleccionado
+  const removeSelectedUser = (userId: string) => {
+    setSelectedReviewers(prev => prev.filter(id => id !== userId));
   };
 
   const handleSaveDraft = () => {
@@ -766,18 +818,86 @@ export default function InitiativeEvaluationPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Enviar revisión de tarjeta a
                       </label>
-                      <select
-                        value={selectedReviewer}
-                        onChange={(e) => setSelectedReviewer(e.target.value)}
-                        className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
-                      >
-                        <option value="">Seleccionar persona...</option>
-                        {reviewers.map((reviewer) => (
-                          <option key={reviewer.email} value={reviewer.email}>
-                            {reviewer.name} ({reviewer.email})
-                          </option>
-                        ))}
-                      </select>
+                      
+                      {/* Usuarios seleccionados */}
+                      {selectedReviewers.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {selectedReviewers.map(userId => {
+                            const user = slackUsers.find(u => u.id === userId);
+                            return (
+                              <span
+                                key={userId}
+                                className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                              >
+                                {user?.real_name || user?.name || userId}
+                                <button
+                                  onClick={() => removeSelectedUser(userId)}
+                                  className="ml-2 text-blue-600 hover:text-blue-800"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Search input */}
+                      <div className="relative user-dropdown-container">
+                        <input
+                          type="text"
+                          value={userSearchTerm}
+                          onChange={(e) => {
+                            setUserSearchTerm(e.target.value);
+                            setShowUserDropdown(true);
+                          }}
+                          onFocus={() => setShowUserDropdown(true)}
+                          placeholder="Buscar usuarios de Slack..."
+                          className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                        />
+                        
+                        {/* Botón para cargar usuarios */}
+                        <button
+                          onClick={loadSlackUsers}
+                          disabled={isLoadingUsers}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                        >
+                          {isLoadingUsers ? 'Cargando...' : 'Cargar'}
+                        </button>
+
+                        {/* Dropdown de usuarios */}
+                        {showUserDropdown && userSearchTerm && filteredUsers.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                            {filteredUsers.map(user => (
+                              <div
+                                key={user.id}
+                                onClick={() => {
+                                  toggleUserSelection(user.id);
+                                  setUserSearchTerm('');
+                                  setShowUserDropdown(false);
+                                }}
+                                className={`px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0 ${
+                                  selectedReviewers.includes(user.id) ? 'bg-blue-50' : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-medium text-slate-900">
+                                      {user.real_name || user.name}
+                                    </div>
+                                    {user.email && (
+                                      <div className="text-sm text-slate-500">{user.email}</div>
+                                    )}
+                                  </div>
+                                  {selectedReviewers.includes(user.id) && (
+                                    <div className="text-blue-600">✓</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -796,7 +916,7 @@ export default function InitiativeEvaluationPage() {
                     <div className="flex justify-end">
                       <button
                         onClick={handleSendReview}
-                        disabled={!selectedReviewer || !reviewComment.trim() || isSendingReview}
+                        disabled={selectedReviewers.length === 0 || !reviewComment.trim() || isSendingReview}
                         className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
                       >
                         {isSendingReview ? (
@@ -807,7 +927,7 @@ export default function InitiativeEvaluationPage() {
                         ) : (
                           <>
                             <Send size={18} className="mr-2" />
-                            Enviar
+                            Enviar a {selectedReviewers.length} usuario(s)
                           </>
                         )}
                       </button>

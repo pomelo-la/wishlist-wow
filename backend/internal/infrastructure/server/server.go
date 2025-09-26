@@ -102,6 +102,7 @@ func (s *Server) setupRoutes() {
 		slack := api.Group("/slack")
 		{
 			slack.POST("/send-message", slackHandler.SendMessage)
+			slack.GET("/users", slackHandler.GetUsers)
 		}
 
 		// Dashboard and analytics (future endpoints)
