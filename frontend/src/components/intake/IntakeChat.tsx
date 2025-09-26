@@ -137,15 +137,14 @@ export default function IntakeChat() {
       }
 
       if (response.is_complete) {
-        // Generate executive summary
-        const summaryResponse = await agentService.validateIntake(currentInput, AgentService.mapToBackendFormat(updatedFormData), updatedFormData);
-        setExecutiveSummary(summaryResponse.executive_summary || 'Resumen generado automáticamente');
+        // Use confirmation summary from agent response
+        setExecutiveSummary(response.confirmation_summary || 'Resumen generado automáticamente');
         setIsComplete(true);
         
         const summaryMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: summaryResponse.executive_summary || '¡Excelente! He recopilado toda la información necesaria.',
+          content: response.confirmation_summary || '¡Excelente! He recopilado toda la información necesaria.',
           section: 'summary',
           timestamp: new Date()
         };

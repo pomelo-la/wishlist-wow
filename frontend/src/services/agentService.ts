@@ -129,7 +129,7 @@ export class AgentService {
       summary: frontendData.summary || '',
       category: this.mapCategory(frontendData.category),
       vertical: this.mapVertical(frontendData.vertical),
-      countries: Array.isArray(frontendData.countries) ? frontendData.countries : [frontendData.country],
+      countries: Array.isArray(frontendData.countries) ? frontendData.countries : (frontendData.country ? [frontendData.country] : []),
       client_type: this.mapClientType(frontendData.clientType),
       economic_impact_type: this.mapEconomicImpact(frontendData.economicImpact),
       innovation_level: this.mapInnovationLevel(frontendData.innovationLevel),

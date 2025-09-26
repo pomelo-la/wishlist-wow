@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"pomelo-wishlist/internal/domain"
 
+	"github.com/joho/godotenv"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -26,13 +28,29 @@ type AgentService struct {
 }
 
 func NewAgentService(scoringService ScoringService) *AgentService {
+	// Load environment variables from config.env
+	if err := godotenv.Load("config.env"); err != nil {
+		fmt.Printf("Warning: Could not load config.env file: %v\n", err)
+	}
+
+	// Get configuration from environment variables
+	gatewayToken := os.Getenv("CLOUDFLARE_AI_GATEWAY_TOKEN")
+	gatewayURL := os.Getenv("CLOUDFLARE_AI_GATEWAY_URL")
+
+	fmt.Printf("DEBUG: CLOUDFLARE_AI_GATEWAY_TOKEN loaded: %s\n", gatewayToken)
+	fmt.Printf("DEBUG: CLOUDFLARE_AI_GATEWAY_URL loaded: %s\n", gatewayURL)
+
+	if gatewayToken == "" || gatewayURL == "" {
+		panic("Missing required environment variables: CLOUDFLARE_AI_GATEWAY_TOKEN and CLOUDFLARE_AI_GATEWAY_URL")
+	}
+
 	// Use Cloudflare AI Gateway with custom HTTP client
 	httpClient := &http.Client{
-		Transport: &CustomTransport{},
+		Transport: &CustomTransport{token: gatewayToken},
 	}
 
 	config := openai.DefaultConfig("dummy-key") // Cloudflare gateway doesn't use this
-	config.BaseURL = "https://gateway.ai.cloudflare.com/v1/bec721af5515c5801c5177906b6bc3b9/pomethon_wow/openai/v1"
+	config.BaseURL = gatewayURL
 	config.HTTPClient = httpClient
 
 	client := openai.NewClientWithConfig(config)
@@ -44,10 +62,12 @@ func NewAgentService(scoringService ScoringService) *AgentService {
 }
 
 // Custom transport to add Cloudflare headers
-type CustomTransport struct{}
+type CustomTransport struct {
+	token string
+}
 
 func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("cf-aig-authorization", "Bearer 7axChTS1U9x8hdZ3r4L36ipj6FRjuHDDq4Tifi_w")
+	req.Header.Set("cf-aig-authorization", "Bearer "+t.token)
 	// Remove the OpenAI Authorization header since we use cf-aig-authorization
 	req.Header.Del("Authorization")
 	return http.DefaultTransport.RoundTrip(req)
@@ -62,14 +82,15 @@ type IntakeRequest struct {
 }
 
 type IntakeResponse struct {
-	Questions           []Question             `json:"questions,omitempty"`
-	Suggestions         []domain.Suggestion    `json:"suggestions,omitempty"`
-	ExecutiveSummary    string                 `json:"executive_summary,omitempty"`
-	ConfirmationSummary string                 `json:"confirmation_summary,omitempty"`
-	Options             []ConfirmationOption   `json:"options,omitempty"`
-	NextStep            string                 `json:"next_step"`
-	IsComplete          bool                   `json:"is_complete"`
-	ExtractedData       map[string]interface{} `json:"extracted_data,omitempty"`
+	Questions            []Question             `json:"questions,omitempty"`
+	Suggestions          []domain.Suggestion    `json:"suggestions,omitempty"`
+	ExecutiveSummary     string                 `json:"executive_summary,omitempty"`
+	ConfirmationSummary  string                 `json:"confirmation_summary,omitempty"`
+	Options              []ConfirmationOption   `json:"options,omitempty"`
+	NextStep             string                 `json:"next_step"`
+	IsComplete           bool                   `json:"is_complete"`
+	HasSufficientInfo    bool                   `json:"has_sufficient_info,omitempty"`
+	ExtractedData        map[string]interface{} `json:"extracted_data,omitempty"`
 	AwaitingConfirmation bool                   `json:"awaiting_confirmation,omitempty"`
 }
 
@@ -163,14 +184,22 @@ func (a *AgentService) IntakeIntervention(ctx context.Context, req IntakeRequest
 func (a *AgentService) startIntake(ctx context.Context, req IntakeRequest) (*IntakeResponse, error) {
 	systemPrompt := `Eres un asistente especializado en ayudar a crear iniciativas de negocio. Tu trabajo es generar preguntas inteligentes y contextuales basadas en lo que el usuario quiere crear.
 
-IMPORTANTE: Responde SOLO con JSON válido siguiendo este formato exacto:
+INSTRUCCIONES CRITICAS:
+- Debes responder UNICAMENTE con un JSON valido
+- NO incluyas texto adicional, explicaciones, saludos, o comentarios
+- NO uses caracteres especiales como ¡, ¿, o acentos en el JSON
+- El JSON debe empezar con { y terminar con }
+- Usa solo caracteres ASCII en el JSON
+- NO agregues texto antes o despues del JSON
+
+FORMATO DE RESPUESTA OBLIGATORIO:
 {
   "questions": [
     {
       "id": "unique_id",
-      "text": "Pregunta en español",
+      "text": "Pregunta en español sin acentos ni caracteres especiales",
       "type": "text|select|multiselect|boolean",
-      "options": ["opción1", "opción2"],
+      "options": ["opcion1", "opcion2"],
       "required": true|false
     }
   ],
@@ -178,11 +207,13 @@ IMPORTANTE: Responde SOLO con JSON válido siguiendo este formato exacto:
   "is_complete": false
 }
 
-Categorías disponibles: regulatory, risk, performance, value_prop, new_product
-Países disponibles: brazil, mexico, argentina, colombia, chile, peru
+Categorias disponibles: regulatory, risk, performance, value_prop, new_product
+Paises disponibles: brazil, mexico, argentina, colombia, chile, peru
 Tipos de cliente: top_issuer, major, medium, small, startup
 
-Genera 2-4 preguntas relevantes y específicas basadas en el contexto del usuario.`
+Genera 2-4 preguntas relevantes y especificas basadas en el contexto del usuario.
+
+RECUERDA: Responde SOLO con el JSON, sin texto adicional.`
 
 	userPrompt := fmt.Sprintf("El usuario quiere crear una iniciativa: '%s'. Genera las primeras preguntas para entender mejor su propuesta.", req.UserInput)
 
@@ -194,15 +225,7 @@ Genera 2-4 preguntas relevantes y específicas basadas en el contexto del usuari
 	// Parse JSON response
 	var intakeResponse IntakeResponse
 	if err := json.Unmarshal([]byte(response), &intakeResponse); err != nil {
-		// Fallback to hardcoded questions if JSON parsing fails
-		return &IntakeResponse{
-			Questions: []Question{
-				{ID: "problem_description", Text: "¿Cuál es el problema que resuelve esta iniciativa?", Type: "text", Required: true},
-				{ID: "category", Text: "¿En qué categoría la clasificarías?", Type: "select", Options: []string{"regulatory", "risk", "performance", "value_prop", "new_product"}, Required: true},
-			},
-			NextStep:   "continue",
-			IsComplete: false,
-		}, nil
+		return nil, fmt.Errorf("error parsing OpenAI response: %w", err)
 	}
 
 	return &intakeResponse, nil
@@ -241,22 +264,7 @@ func (a *AgentService) continueIntake(ctx context.Context, req IntakeRequest) (*
 		return a.handleConfirmationResponse(ctx, req, userInput)
 	}
 
-	// Límite ABSOLUTO: máximo 3 respuestas - NO puede ser sobrescrito (cambiado para pruebas rápidas)
-	fmt.Printf("DEBUG: Evaluando límite - questionCount = %d\n", questionCount)
-	if questionCount >= 3 {
-		fmt.Printf("DEBUG: Límite alcanzado, generando confirmación\n")
-		return a.generateConfirmationSummary(ctx, req)
-	}
-	fmt.Printf("DEBUG: Continuando con preguntas\n")
-
-	// Evaluación inteligente SOLO si tenemos menos de 3 preguntas
-	// Esto evita que la evaluación inteligente sobrescriba el límite absoluto
-	if questionCount < 3 {
-		hasEnoughInfo, shouldConfirm := a.evaluateCompleteness(req.Initiative, req.Context, questionCount)
-		if hasEnoughInfo || shouldConfirm {
-			return a.generateConfirmationSummary(ctx, req)
-		}
-	}
+	// El LLM decidirá si tiene suficiente información para generar el resumen
 
 	systemPrompt := `Eres un Product Manager senior especializado en fintech, trabajando para Pomelo - una empresa líder de infraestructura de pagos en América Latina. Tu trabajo es guiar la creación de iniciativas de negocio tecnológicas con un enfoque experto en el ecosistema fintech.
 
@@ -310,11 +318,12 @@ Pomelo es una plataforma de infraestructura de pagos que ofrece:
 4. **Competitive Landscape**: Reconoce trends del mercado (Open Banking, PIX, instant payments, embedded finance)
 
 ## REGLAS DE CONVERSACIÓN
-1. Saluda profesionalmente y pregunta sobre el desafío de negocio específico
-2. Haz preguntas inteligentes que demuestren expertise fintech
-3. Extrae información estructurada automáticamente
-4. Considera el contexto regional (ej: PIX en Brasil, CoDi en México)
-5. Valida feasibility técnica y regulatory compliance
+1. **ASUME CONTEXTO FINTECH**: No preguntes sobre industria/sector - siempre es fintech/pagos
+2. **SALUDO PROFESIONAL**: Saluda como experto en pagos y pregunta sobre el desafío específico
+3. **PREGUNTAS INTELIGENTES**: Haz preguntas que demuestren expertise fintech profundo
+4. **EXTRACCIÓN AUTOMÁTICA**: Extrae información estructurada automáticamente
+5. **CONTEXTO REGIONAL**: Considera regulaciones locales (PIX en Brasil, CoDi en México, etc.)
+6. **VALIDACIÓN TÉCNICA**: Valida feasibility técnica y regulatory compliance
 
 ## EXTRACCIÓN ESTRUCTURADA
 Extrae automáticamente:
@@ -332,6 +341,8 @@ Extrae automáticamente:
 - client_segment: Perfil detallado del cliente objetivo
 
 ## FORMATO DE RESPUESTA JSON
+IMPORTANTE: Debes devolver ÚNICAMENTE un JSON válido, sin texto adicional antes o después.
+
 {
   "questions": [
     {
@@ -356,9 +367,36 @@ Extrae automáticamente:
     "business_case": "justificación con ROI",
     "client_segment": "perfil del cliente"
   },
-  "next_step": "continue",
-  "is_complete": false
+  "next_step": "continue|confirm",
+  "is_complete": false,
+  "has_sufficient_info": false
 }
+
+## DECISIÓN DE SUFICIENCIA
+Evalúa si tienes suficiente información para generar un resumen ejecutivo completo. DEBES tener TODOS estos campos:
+
+**CAMPOS OBLIGATORIOS:**
+- title: Título claro de la iniciativa
+- summary: Resumen ejecutivo de 1-2 oraciones
+- category: regulatory|risk|performance|value_prop|new_product
+- vertical: processing|core|bin-sponsor|card-mgmt|tokenization|fraud|platform (solo para regulatory/performance)
+- countries: Array con al menos un país ["brazil","mexico","argentina","colombia","chile","peru"]
+- client_type: top_issuer|major|medium|small|startup
+- problem_description: Descripción técnica del problema a resolver
+- business_case: Justificación de negocio con métricas/ROI
+- economic_impact_type: significant|moderate|low|hard_to_quantify
+- client_segment: Perfil detallado del cliente objetivo
+
+**REGLAS DE SUFICIENCIA:**
+- Si falta CUALQUIERA de estos campos, continúa preguntando
+- NO generes resumen hasta tener TODOS los campos
+- Haz preguntas específicas para completar campos faltantes
+- Prioriza campos críticos: category, vertical, client_type, countries
+
+Solo cuando tengas TODOS los campos, establece:
+- "next_step": "confirm"
+- "has_sufficient_info": true
+- "is_complete": true
 
 ## EJEMPLOS CONTEXTUALIZADOS
 - Input: "Necesito reducir la latencia de autorización"
@@ -415,20 +453,21 @@ Extrae automáticamente:
 		return nil, fmt.Errorf("error calling OpenAI: %w", err)
 	}
 
+	// Debug: print the raw response
+	fmt.Printf("DEBUG: Raw LLM response: %s\n", response)
+
 	// Parse JSON response
 	var intakeResponse IntakeResponse
 	if err := json.Unmarshal([]byte(response), &intakeResponse); err != nil {
-		// Fallback to contextual questions based on user input
-		return a.generateContextualFallback(req.UserInput, req.Context), nil
+		fmt.Printf("DEBUG: JSON parsing error: %v\n", err)
+		fmt.Printf("DEBUG: Response bytes: %v\n", []byte(response))
+		return nil, fmt.Errorf("error parsing OpenAI response: %w", err)
 	}
 
-	// Check if the AI response makes sense for the user input
-	lowerInput := strings.ToLower(req.UserInput)
-	if strings.Contains(lowerInput, "hola") || strings.Contains(lowerInput, "buenos") || strings.Contains(lowerInput, "buenas") {
-		// If user said hello but AI asked about countries/categories, use fallback
-		if strings.Contains(intakeResponse.Questions[0].Text, "país") || strings.Contains(intakeResponse.Questions[0].Text, "categoría") {
-			return a.generateContextualFallback(req.UserInput, req.Context), nil
-		}
+	// Si el LLM decidió que tiene suficiente información, generar confirmación
+	if intakeResponse.NextStep == "confirm" || intakeResponse.HasSufficientInfo {
+		fmt.Printf("DEBUG: LLM decidió que tiene suficiente información, generando confirmación\n")
+		return a.generateConfirmationSummary(ctx, req)
 	}
 
 	return &intakeResponse, nil
@@ -480,48 +519,7 @@ func (a *AgentService) shouldCompleteIntake(initiative *domain.Initiative, conte
 }
 
 // evaluateCompleteness evalúa inteligentemente si tenemos suficiente información
-func (a *AgentService) evaluateCompleteness(initiative *domain.Initiative, context map[string]interface{}, questionCount int) (bool, bool) {
-	// Evaluar calidad de la información recopilada
-	hasTitle := initiative != nil && initiative.Title != ""
-	hasSummary := initiative != nil && initiative.Summary != ""
-	hasCategory := initiative != nil && initiative.Category != ""
-	hasVertical := initiative != nil && initiative.Vertical != ""
-	hasCountries := initiative != nil && len(initiative.Countries) > 0
-	hasClientType := initiative != nil && initiative.ClientType != ""
-
-	// Campos críticos del contexto
-	contextFields := 0
-	if context != nil {
-		criticalFields := []string{"problem_description", "business_case", "economic_impact", "client_segment"}
-		for _, field := range criticalFields {
-			if value, exists := context[field]; exists {
-				if str, ok := value.(string); ok && len(strings.TrimSpace(str)) > 0 {
-					contextFields++
-				}
-			}
-		}
-	}
-
-	// Criterios de evaluación inteligente
-	basicInfoComplete := hasTitle && hasSummary && hasCategory && hasVertical
-	businessInfoComplete := hasCountries && hasClientType && contextFields >= 3
-
-	// Después de 2 preguntas, evaluar si vale la pena mostrar resumen
-	// Cambiado de 8 a 2 para pruebas rápidas
-	if questionCount >= 2 {
-		// Si tenemos info básica completa, ofrecer resumen aunque falten detalles
-		if basicInfoComplete && contextFields >= 3 {
-			return false, true // No completo, pero ofrecer confirmación
-		}
-	}
-
-	// Si tenemos toda la info esencial, completar
-	if basicInfoComplete && businessInfoComplete {
-		return true, true // Completo y ofrecer confirmación
-	}
-
-	return false, false // Continuar con preguntas
-}
+// Función eliminada - ahora el LLM decide cuándo tiene suficiente información
 
 // generateConfirmationSummary genera el resumen de confirmación con opciones para el usuario
 func (a *AgentService) generateConfirmationSummary(ctx context.Context, req IntakeRequest) (*IntakeResponse, error) {
@@ -551,43 +549,74 @@ func (a *AgentService) generateConfirmationSummary(ctx context.Context, req Inta
 		contextInfo += fmt.Sprintf("Datos de iniciativa: %s\n", string(initiativeJSON))
 	}
 
-	// Crear prompt específico para generar resumen ejecutivo
-	prompt := fmt.Sprintf(`%s
+	// Crear prompt para confirmación con estructura específica
+	prompt := `Eres un asistente que extrae y confirma información de iniciativas fintech. 
 
-INSTRUCCIONES PARA GENERAR RESUMEN EJECUTIVO:
-Basándote en toda la conversación anterior, genera un resumen ejecutivo profesional y completo que incluya:
-
-1. Un resumen de las respuestas específicas del usuario
-2. Información extraída y estructurada sobre la iniciativa
-3. Un formato de confirmación que muestre claramente lo que entendiste
+REGLAS ESTRICTAS:
+- SOLO usa información explícitamente proporcionada por el usuario
+- NO inventes números, fechas, porcentajes, métricas, o plazos
+- NO agregues información de mercado, competidores, o contexto externo
+- Si no tienes información para un campo, déjalo vacío o usa "unknown"
+- Mantén la estructura del JSON exactamente como se especifica
 
 Debes devolver ÚNICAMENTE un JSON con este formato:
 {
-  "confirmation_summary": "Resumen ejecutivo detallado en markdown que incluya toda la información de la conversación",
+  "confirmation_summary": "Resumen ejecutivo estructurado con secciones OBJETIVO, ALCANCE, ENFOQUE y BENEFICIOS ESPERADOS, basado únicamente en la información proporcionada por el usuario",
   "extracted_data": {
-    "title": "título inferido de la conversación",
-    "summary": "resumen técnico de 1-2 oraciones",
-    "category": "regulatory|risk|performance|value_prop|new_product",
-    "vertical": "processing|core|bin-sponsor|card-mgmt|tokenization|fraud|platform",
-    "countries": ["array de países mencionados"],
-    "client_type": "tipo de cliente inferido",
-    "economic_impact_type": "impacto económico inferido",
-    "problem_description": "descripción del problema basada en las respuestas",
-    "business_case": "caso de negocio inferido",
-    "client_segment": "segmento de cliente inferido"
+    "title": "título basado solo en lo mencionado por el usuario",
+    "summary": "resumen de 1-2 oraciones basado solo en lo mencionado",
+    "category": "regulatory|risk|performance|value_prop|new_product (solo si fue mencionado, sino 'unknown')",
+    "vertical": "processing|banking|issuing|acquiring|fraud|compliance (solo si fue mencionado, sino 'unknown')",
+    "countries": ["lista de países mencionados, vacío si no se mencionó ninguno"],
+    "client_type": "tipo de cliente mencionado, vacío si no se especificó",
+    "economic_impact_type": "tipo de impacto económico mencionado, vacío si no se especificó",
+    "problem_description": "descripción del problema tal como la mencionó el usuario",
+    "business_case": "justificación de negocio tal como la explicó el usuario",
+    "client_segment": "segmento de cliente mencionado, vacío si no se especificó"
   },
   "next_step": "confirm",
   "is_complete": true
 }
 
-IMPORTANTE: El confirmation_summary debe incluir específicamente las respuestas que dio el usuario, no información genérica.`, contextInfo)
+INSTRUCCIONES PARA EL RESUMEN:
+- Crea un resumen ejecutivo estructurado con las siguientes secciones:
+  * **OBJETIVO**: ¿Qué se quiere lograr?
+  * **ALCANCE**: ¿Dónde y para quién?
+  * **ENFOQUE**: ¿Cómo se abordará?
+  * **BENEFICIOS ESPERADOS**: ¿Qué se espera conseguir?
+- Usa un lenguaje profesional y ejecutivo
+- Estructura la información de manera lógica y clara
+- NO agregues información que no fue proporcionada
+- Mantén un tono profesional pero conservador
+- Si falta información en alguna sección, omítela o usa "Por definir"
+- EJEMPLO de estructura esperada:
+  **OBJETIVO**
+  [Descripción del objetivo basado en lo mencionado]
+  
+  **ALCANCE**
+  [Países, clientes, segmentos mencionados]
+  
+  **ENFOQUE**
+  [Método o enfoque mencionado]
+  
+  **BENEFICIOS ESPERADOS**
+  [Beneficios mencionados o inferidos lógicamente]
+
+IMPORTANTE: 
+- Usa "unknown" para campos categóricos no mencionados
+- Usa arrays vacíos [] para listas no mencionadas  
+- Usa strings vacíos "" para campos de texto no mencionados
+- NO infieras información basándote en el contexto`
 
 	// Llamar al LLM
-	response, err := a.callOpenAI(ctx, prompt, "")
+	response, err := a.callOpenAI(ctx, prompt, contextInfo)
 	if err != nil {
 		fmt.Printf("Error llamando LLM para generar resumen de confirmación: %v\n", err)
 		return nil, fmt.Errorf("failed to generate confirmation summary: %w", err)
 	}
+
+	// Debug: imprimir la respuesta del LLM
+	fmt.Printf("DEBUG: Respuesta del LLM para confirmación: %s\n", response)
 
 	// Parsear respuesta JSON
 	var llmResponse struct {
@@ -611,60 +640,12 @@ IMPORTANTE: El confirmation_summary debe incluir específicamente las respuestas
 				Required: false,
 			},
 		},
-		ConfirmationSummary: llmResponse.ConfirmationSummary,
-		ExtractedData:       llmResponse.ExtractedData,
-		NextStep:            llmResponse.NextStep,
-		IsComplete:          llmResponse.IsComplete,
+		ConfirmationSummary:  llmResponse.ConfirmationSummary,
+		ExtractedData:        llmResponse.ExtractedData,
+		NextStep:             llmResponse.NextStep,
+		IsComplete:           llmResponse.IsComplete,
 		AwaitingConfirmation: true, // Marcar que estamos esperando confirmación
 	}, nil
-}
-
-
-// generateContextualFallback genera preguntas contextuales cuando falla el parsing del JSON
-func (a *AgentService) generateContextualFallback(userInput string, context map[string]interface{}) *IntakeResponse {
-	lowerInput := strings.ToLower(userInput)
-
-	// Si es un saludo, responder de manera amigable
-	if strings.Contains(lowerInput, "hola") || strings.Contains(lowerInput, "buenos") || strings.Contains(lowerInput, "buenas") {
-		return &IntakeResponse{
-			Questions: []Question{
-				{ID: "greeting_followup", Text: "¡Hola! Me alegra que quieras crear una nueva iniciativa. ¿Podrías contarme qué problema específico te gustaría resolver?", Type: "text", Required: true},
-			},
-			NextStep:   "continue",
-			IsComplete: false,
-		}
-	}
-
-	// Si menciona un país específico
-	if strings.Contains(lowerInput, "argentina") || strings.Contains(lowerInput, "brasil") || strings.Contains(lowerInput, "méxico") || strings.Contains(lowerInput, "colombia") || strings.Contains(lowerInput, "chile") {
-		return &IntakeResponse{
-			Questions: []Question{
-				{ID: "country_specific", Text: "Perfecto, veo que mencionas un país específico. ¿Podrías contarme más detalles sobre la iniciativa que tienes en mente?", Type: "text", Required: true},
-			},
-			NextStep:   "continue",
-			IsComplete: false,
-		}
-	}
-
-	// Si menciona un problema o necesidad
-	if strings.Contains(lowerInput, "problema") || strings.Contains(lowerInput, "necesito") || strings.Contains(lowerInput, "quiero") || strings.Contains(lowerInput, "mejorar") {
-		return &IntakeResponse{
-			Questions: []Question{
-				{ID: "problem_details", Text: "Entiendo que tienes un problema específico. ¿Podrías darme más detalles sobre cómo esto afecta a tus clientes o usuarios?", Type: "text", Required: true},
-			},
-			NextStep:   "continue",
-			IsComplete: false,
-		}
-	}
-
-	// Pregunta genérica pero contextual
-	return &IntakeResponse{
-		Questions: []Question{
-			{ID: "general_context", Text: "Interesante. ¿Podrías contarme más sobre esta iniciativa? ¿Qué problema específico estás tratando de resolver?", Type: "text", Required: true},
-		},
-		NextStep:   "continue",
-		IsComplete: false,
-	}
 }
 
 func (a *AgentService) validateIntake(ctx context.Context, req IntakeRequest) (*IntakeResponse, error) {
@@ -741,7 +722,6 @@ Redacta en español con terminología técnica precisa y enfoque en business imp
 	}, nil
 }
 
-
 // Estimation intervention implementation
 func (a *AgentService) EstimationIntervention(ctx context.Context, req EstimationRequest) (*EstimationResponse, error) {
 	switch req.Step {
@@ -786,15 +766,7 @@ Genera preguntas sobre esfuerzo, confianza, dependencias y complejidad técnica.
 
 	var estimationResponse EstimationResponse
 	if err := json.Unmarshal([]byte(response), &estimationResponse); err != nil {
-		// Fallback
-		return &EstimationResponse{
-			Questions: []Question{
-				{ID: "effort_weeks", Text: "¿Cuántas semanas tomará implementar?", Type: "number", Required: true},
-				{ID: "confidence_level", Text: "¿Cuál es tu confianza (1-10)?", Type: "number", Required: true},
-			},
-			NextStep:   "continue",
-			IsComplete: false,
-		}, nil
+		return nil, fmt.Errorf("error parsing OpenAI response: %w", err)
 	}
 
 	return &estimationResponse, nil
@@ -830,15 +802,7 @@ Enfócate en riesgos técnicos, dependencias y factores que afecten la estimaci�
 
 	var estimationResponse EstimationResponse
 	if err := json.Unmarshal([]byte(response), &estimationResponse); err != nil {
-		// Fallback
-		return &EstimationResponse{
-			Questions: []Question{
-				{ID: "technical_risks", Text: "¿Qué riesgos técnicos anticipas?", Type: "text", Required: false},
-				{ID: "systemic_risk", Text: "¿Nivel de riesgo sistémico?", Type: "select", Options: []string{"blocker", "high", "medium", "low"}, Required: true},
-			},
-			NextStep:   "validate",
-			IsComplete: false,
-		}, nil
+		return nil, fmt.Errorf("error parsing OpenAI response: %w", err)
 	}
 
 	return &estimationResponse, nil
