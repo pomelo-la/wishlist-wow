@@ -1,15 +1,88 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { mockInitiatives } from '@/data/mockData';
 import KanbanCard from './KanbanCard';
 import EvaluationView from '@/components/evaluation/EvaluationView';
-import { Plus } from 'lucide-react';
+import { Plus, Filter, MoreHorizontal } from 'lucide-react';
 import { Initiative } from '@/types/initiative';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
-export default function KanbanBoard() {
+interface KanbanBoardProps {
+  searchQuery?: string;
+}
+
+interface DroppableColumnProps {
+  status: string;
+  title: string;
+  headerColor: string;
+  children: React.ReactNode;
+  initiativeCount: number;
+}
+
+function DroppableColumn({ status, title, headerColor, children, initiativeCount }: DroppableColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+  });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`flex-shrink-0 w-80 bg-gray-100 mx-2 my-4 rounded-lg shadow-sm ${
+        isOver ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+      }`}
+    >
+      {/* Column Header */}
+      <div className={`${headerColor} px-4 py-3 rounded-t-lg`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <h3 className="font-semibold text-gray-900 text-sm">
+              {title}
+            </h3>
+            <span className="bg-white text-gray-700 text-xs font-medium px-2 py-1 rounded-full">
+              {initiativeCount}
+            </span>
+          </div>
+          <button className="p-1 hover:bg-white hover:bg-opacity-50 rounded transition-colors">
+            <Plus size={16} className="text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* Column Content */}
+      <div className="p-3 space-y-3 h-[calc(100%-4rem)] overflow-y-auto">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
   const [initiatives, setInitiatives] = useState(mockInitiatives);
   const [selectedInitiativeForEvaluation, setSelectedInitiativeForEvaluation] = useState<Initiative | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const handleStatusChange = (initiativeId: string, newStatus: string) => {
     setInitiatives(prev => 
@@ -43,7 +116,7 @@ export default function KanbanBoard() {
                 updatedAt: new Date(),
                 // Update structured fields if provided
                 ...(updatedFields && {
-                  effortEstimate: updatedFields.effortDays,
+                  effortEstimate: updatedFields.effortEstimate,
                   confidence: updatedFields.confidence,
                   quarter: updatedFields.quarter
                 })
@@ -53,6 +126,74 @@ export default function KanbanBoard() {
       );
     }
   };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    const initiativeId = active.id as string;
+    const newStatus = over.id as string;
+
+    // Verificar que el estado sea válido
+    const validStatuses = statusConfig.map(status => status.key);
+    if (!validStatuses.includes(newStatus)) {
+      console.log('Estado no válido:', newStatus);
+      setActiveId(null);
+      return;
+    }
+
+    // Obtener la iniciativa actual para verificar el cambio
+    const currentInitiative = initiatives.find(i => i.id === initiativeId);
+    if (!currentInitiative) {
+      console.log('Iniciativa no encontrada:', initiativeId);
+      setActiveId(null);
+      return;
+    }
+
+    // Solo actualizar si el estado realmente cambió
+    if (currentInitiative.status === newStatus) {
+      console.log('Estado sin cambios:', newStatus);
+      setActiveId(null);
+      return;
+    }
+
+    console.log('Cambio de status:', {
+      initiativeId,
+      from: currentInitiative.status,
+      to: newStatus,
+      initiative: currentInitiative.title
+    });
+
+    // Actualizar la iniciativa con el nuevo estado
+    setInitiatives(prev => 
+      prev.map(initiative => 
+        initiative.id === initiativeId 
+          ? { ...initiative, status: newStatus as any, updatedAt: new Date() }
+          : initiative
+      )
+    );
+
+    setActiveId(null);
+  };
+
+  // Filter initiatives based on search query
+  const filteredInitiatives = useMemo(() => {
+    if (!searchQuery.trim()) return initiatives;
+    
+    const query = searchQuery.toLowerCase();
+    return initiatives.filter(initiative => 
+      initiative.title.toLowerCase().includes(query) ||
+      initiative.description.toLowerCase().includes(query) ||
+      initiative.product.toLowerCase().includes(query) ||
+      initiative.country.toLowerCase().includes(query) ||
+      initiative.category.toLowerCase().includes(query)
+    );
+  }, [initiatives, searchQuery]);
 
   const statusConfig = [
     {
@@ -94,67 +235,105 @@ export default function KanbanBoard() {
   ];
 
   const getInitiativesByStatus = (status: string) => {
-    return initiatives.filter(initiative => initiative.status === status);
+    return filteredInitiatives.filter(initiative => initiative.status === status);
   };
 
   return (
-    <div className="h-full overflow-hidden">
-      <div className="flex gap-6 h-full overflow-x-auto pb-6">
-        {statusConfig.map((status) => {
-          const statusInitiatives = getInitiativesByStatus(status.key);
-          
-          return (
-            <div 
-              key={status.key} 
-              className={`flex-shrink-0 w-80 ${status.color} border rounded-lg`}
-            >
-              {/* Column Header */}
-              <div className={`${status.headerColor} px-4 py-3 border-b border-gray-200 rounded-t-lg`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 text-sm">
-                    {status.title}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-white text-gray-700 text-xs font-medium px-2 py-1 rounded-full">
-                      {statusInitiatives.length}
-                    </span>
-                    <button className="p-1 hover:bg-white hover:bg-opacity-50 rounded">
-                      <Plus size={16} className="text-gray-600" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Column Content */}
-              <div className="p-4 space-y-4 h-[calc(100%-4rem)] overflow-y-auto">
-                {statusInitiatives.length === 0 ? (
-                  <div className="text-center text-gray-500 text-sm py-8">
-                    No hay iniciativas en esta etapa
-                  </div>
-                ) : (
-                  statusInitiatives.map((initiative) => (
-                    <KanbanCard
-                      key={initiative.id}
-                      initiative={initiative}
-                      onStatusChange={handleStatusChange}
-                      onViewDetails={handleViewDetails}
-                    />
-                  ))
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="h-full flex flex-col bg-gray-50">
+        {/* Board Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold text-gray-900">Tablero Kanban</h2>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <span>{filteredInitiatives.length} iniciativas</span>
+                {searchQuery && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    Filtrado por: "{searchQuery}"
+                  </span>
                 )}
               </div>
             </div>
-          );
-        })}
+            <div className="flex items-center space-x-2">
+              <button className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                <Filter size={16} className="mr-2" />
+                Filtros
+              </button>
+              <button className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                <MoreHorizontal size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Board Content */}
+        <div className="flex-1 overflow-hidden">
+          <div className="flex h-full overflow-x-auto">
+            {statusConfig.map((status) => {
+              const statusInitiatives = getInitiativesByStatus(status.key);
+              
+              return (
+                <DroppableColumn
+                  key={status.key}
+                  status={status.key}
+                  title={status.title}
+                  headerColor={status.headerColor}
+                  initiativeCount={statusInitiatives.length}
+                >
+                  <SortableContext
+                    items={statusInitiatives.map(initiative => initiative.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {statusInitiatives.length === 0 ? (
+                      <div className="text-center text-gray-500 text-sm py-8">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <Plus size={20} className="text-gray-400" />
+                        </div>
+                        No hay iniciativas en esta etapa
+                      </div>
+                    ) : (
+                      statusInitiatives.map((initiative) => (
+                        <KanbanCard
+                          key={initiative.id}
+                          initiative={initiative}
+                          onStatusChange={handleStatusChange}
+                          onViewDetails={handleViewDetails}
+                        />
+                      ))
+                    )}
+                  </SortableContext>
+                </DroppableColumn>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeId ? (
+            <KanbanCard
+              initiative={initiatives.find(i => i.id === activeId)!}
+              onStatusChange={handleStatusChange}
+              onViewDetails={handleViewDetails}
+            />
+          ) : null}
+        </DragOverlay>
+        
+        {/* Evaluation Modal */}
+        {selectedInitiativeForEvaluation && (
+          <EvaluationView
+            initiative={selectedInitiativeForEvaluation}
+            onClose={handleCloseEvaluation}
+            onStatusChange={handleEvaluationStatusChange}
+          />
+        )}
       </div>
-      
-      {/* Evaluation Modal */}
-      {selectedInitiativeForEvaluation && (
-        <EvaluationView
-          initiative={selectedInitiativeForEvaluation}
-          onClose={handleCloseEvaluation}
-          onStatusChange={handleEvaluationStatusChange}
-        />
-      )}
-    </div>
+    </DndContext>
   );
 }

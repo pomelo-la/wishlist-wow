@@ -9,6 +9,7 @@ import IntakeChat from '@/components/intake/IntakeChat';
 
 export default function Home() {
   const [activeView, setActiveView] = useState<'dashboard' | 'kanban' | 'intake'>('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -20,17 +21,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header activeView={activeView} onViewChange={setActiveView} />
+      <Header 
+        activeView={activeView} 
+        onViewChange={setActiveView}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
       
-      <main className="container mx-auto px-6 py-8">
-        {activeView === 'dashboard' && <Dashboard />}
-        {activeView === 'kanban' && (
-          <div className="h-[calc(100vh-12rem)]">
-            <KanbanBoard />
+      <main className="h-[calc(100vh-5rem)]">
+        {activeView === 'dashboard' && (
+          <div className="container mx-auto px-6 py-8">
+            <Dashboard />
           </div>
         )}
+        {activeView === 'kanban' && (
+          <KanbanBoard searchQuery={searchQuery} />
+        )}
         {activeView === 'intake' && (
-          <div className="h-[calc(100vh-12rem)] bg-white rounded-lg shadow-sm">
+          <div className="h-full">
             <IntakeChat />
           </div>
         )}

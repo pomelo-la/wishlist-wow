@@ -313,9 +313,9 @@ export default function IntakeChat() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full bg-white">
       {/* Sidebar with progress */}
-      <div className="w-80 bg-gray-50 border-r border-gray-200 p-4">
+      <div className="w-80 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
         <h3 className="font-semibold text-gray-900 mb-4">Progreso del Intake</h3>
         
         {/* Progress Bar */}
@@ -372,9 +372,9 @@ export default function IntakeChat() {
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
           {messages.length === 0 && isLoading ? (
             <div className="flex justify-center items-center h-full">
               <div className="flex items-center space-x-2 text-gray-500">

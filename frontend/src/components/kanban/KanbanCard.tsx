@@ -1,8 +1,10 @@
 'use client';
 
 import { Initiative } from '@/types/initiative';
-import { Calendar, User, Target, CheckCircle, ArrowRight, Eye } from 'lucide-react';
+import { Calendar, User, Target, CheckCircle, ArrowRight, Eye, Clock, Star, MoreHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface KanbanCardProps {
   initiative: Initiative;
@@ -12,13 +14,28 @@ interface KanbanCardProps {
 
 export default function KanbanCard({ initiative, onStatusChange, onViewDetails }: KanbanCardProps) {
   const router = useRouter();
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: initiative.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'mandates': return 'bg-red-100 text-red-800';
-      case 'performance': return 'bg-yellow-100 text-yellow-800';
-      case 'value-prop': return 'bg-green-100 text-green-800';
-      case 'new-product': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'mandates': return 'bg-red-500';
+      case 'performance': return 'bg-yellow-500';
+      case 'value-prop': return 'bg-green-500';
+      case 'new-product': return 'bg-blue-500';
+      default: return 'bg-gray-500';
     }
   };
 
@@ -33,6 +50,13 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
       'cross-country': '🌍'
     };
     return flags[country] || '🏴';
+  };
+
+  const getPriorityColor = (score: number) => {
+    if (score >= 90) return 'text-red-500';
+    if (score >= 80) return 'text-orange-500';
+    if (score >= 70) return 'text-yellow-500';
+    return 'text-gray-500';
   };
 
   const getAvailableActions = () => {
@@ -110,94 +134,96 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-grab group ${
+        isDragging ? 'opacity-50 shadow-lg' : ''
+      }`}
       onClick={handleCardClick}
     >
-      <div className="flex justify-between items-start mb-3">
-        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
-          {initiative.title}
-        </h4>
-        <span className="text-lg ml-2">
-          {getCountryFlag(initiative.country)}
-        </span>
-      </div>
-
-      <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-        {initiative.summary}
-      </p>
-
-      <div className="flex items-center justify-between mb-3">
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(initiative.category)}`}>
-          {initiative.category.replace('-', ' ')}
-        </span>
-        {initiative.score && (
-          <div className="flex items-center">
-            <Target size={12} className="text-gray-400 mr-1" />
-            <span className="text-xs font-semibold text-gray-900">
-              {initiative.score}
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center">
-          <User size={12} className="mr-1" />
-          <span>{initiative.createdBy}</span>
+      {/* Category indicator bar */}
+      <div className={`h-1 rounded-t-lg ${getCategoryColor(initiative.category)}`} />
+      
+      <div className="p-3">
+        {/* Header with title and country */}
+        <div className="flex items-start justify-between mb-2">
+          <h4 className="text-sm font-medium text-gray-900 line-clamp-2 flex-1 pr-2">
+            {initiative.title}
+          </h4>
+          <span className="text-lg flex-shrink-0">
+            {getCountryFlag(initiative.country)}
+          </span>
         </div>
-        {initiative.quarter && (
-          <div className="flex items-center">
-            <Calendar size={12} className="mr-1" />
-            <span>{initiative.quarter}</span>
-          </div>
-        )}
-      </div>
 
-      {initiative.effortEstimate && (
-        <div className="mt-2 pt-2 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">Esfuerzo:</span>
-            <span className={`text-xs font-medium px-2 py-1 rounded ${
-              (initiative.effortEstimate || 0) <= 10 ? 'bg-green-100 text-green-800' :
-              (initiative.effortEstimate || 0) <= 20 ? 'bg-yellow-100 text-yellow-800' :
-              (initiative.effortEstimate || 0) <= 30 ? 'bg-orange-100 text-orange-800' :
-              'bg-red-100 text-red-800'
-            }`}>
-              {initiative.effortEstimate}d
+        {/* Description */}
+        <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+          {initiative.summary}
+        </p>
+
+        {/* Tags and metadata */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-md">
+            {initiative.product}
+          </span>
+          {initiative.quarter && (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-md">
+              {initiative.quarter}
             </span>
-          </div>
-          {initiative.confidence && (
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-500">Confianza:</span>
-              <span className="text-xs font-medium text-gray-900">
-                {initiative.confidence}%
-              </span>
-            </div>
           )}
         </div>
-      )}
-      
-      {/* Action buttons */}
-      {availableActions.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-          {availableActions.map((action, index) => {
-            const IconComponent = action.icon;
-            return (
-              <button
-                key={index}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  action.action();
-                }}
-                className={`w-full flex items-center justify-center px-3 py-2 text-xs font-medium text-white rounded-md transition-colors ${action.color}`}
-              >
-                <IconComponent size={14} className="mr-2" />
-                {action.label}
-              </button>
-            );
-          })}
+
+        {/* Footer with score and metadata */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            {initiative.score && (
+              <div className="flex items-center">
+                <Star size={12} className={`mr-1 ${getPriorityColor(initiative.score)}`} />
+                <span className={`text-xs font-semibold ${getPriorityColor(initiative.score)}`}>
+                  {initiative.score}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center text-xs text-gray-500">
+              <Clock size={10} className="mr-1" />
+              <span>{new Date(initiative.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+          
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails?.(initiative.id);
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+          >
+            <MoreHorizontal size={14} className="text-gray-400" />
+          </button>
         </div>
-      )}
+
+        {/* Action Buttons - Only show on hover */}
+        {availableActions.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
+            {availableActions.map((action, index) => {
+              const IconComponent = action.icon;
+              return (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    action.action();
+                  }}
+                  className={`w-full flex items-center justify-center px-3 py-2 text-xs font-medium text-white rounded-md transition-colors ${action.color} mb-2 last:mb-0`}
+                >
+                  <IconComponent size={12} className="mr-2" />
+                  {action.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
