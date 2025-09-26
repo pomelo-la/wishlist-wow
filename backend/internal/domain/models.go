@@ -11,169 +11,169 @@ import (
 type InitiativeStatus string
 
 const (
-	StatusDraft           InitiativeStatus = "draft"
-	StatusLoaded          InitiativeStatus = "loaded"
-	StatusInReview        InitiativeStatus = "in_review"
-	StatusInEstimation    InitiativeStatus = "in_estimation"
-	StatusEvaluationClosed InitiativeStatus = "evaluation_closed"
-	StatusPrioritized     InitiativeStatus = "prioritized"
+	StatusBacklog                    InitiativeStatus = "Backlog"
+	StatusIniciativasCargadasRevisar InitiativeStatus = "Iniciativas cargadas a revisar"
+	StatusIniciativasAEstimar        InitiativeStatus = "Iniciativas a estimar"
+	StatusPriorizacionFinal          InitiativeStatus = "Priorizacion final"
+	StatusRoadmapDelQ                InitiativeStatus = "Roadmap del Q"
 )
 
 // User roles
 type UserRole string
 
 const (
-	RoleCreator    UserRole = "creator"
-	RoleReviewer   UserRole = "reviewer"
-	RoleITManager  UserRole = "it_manager"
-	RoleOwner      UserRole = "owner"
-	RoleAdmin      UserRole = "admin"
+	RoleCreator   UserRole = "creator"
+	RoleReviewer  UserRole = "reviewer"
+	RoleITManager UserRole = "it_manager"
+	RoleOwner     UserRole = "owner"
+	RoleAdmin     UserRole = "admin"
 )
 
 // Categories
 type Category string
 
 const (
-	CategoryRegulatory   Category = "regulatory"
-	CategoryRisk         Category = "risk"
-	CategoryPerformance  Category = "performance"
-	CategoryValueProp    Category = "value_prop"
-	CategoryNewProduct   Category = "new_product"
+	CategoryMandatesRegulatoryRisk Category = "Mandates / Regulatorio / Riesgo"
+	CategoryPerformanceImprovement Category = "Mejora de performance"
+	CategoryValueProp              Category = "Value Prop"
+	CategoryNewProductLaunch       Category = "Lanzamiento nuevo producto"
 )
 
 // Verticals
 type Vertical string
 
 const (
-	VerticalBanking    Vertical = "banking"
-	VerticalRetail     Vertical = "retail"
-	VerticalGovernment Vertical = "government"
-	VerticalHealthcare Vertical = "healthcare"
-	VerticalEducation  Vertical = "education"
+	VerticalProcessing         Vertical = "Processing"
+	VerticalCore               Vertical = "Core"
+	VerticalBINSponsor         Vertical = "BIN Sponsor"
+	VerticalCardManagement     Vertical = "Card Management & Logistics"
+	VerticalTokenization       Vertical = "Tokenización"
+	VerticalFraudTools         Vertical = "Fraud Tools"
+	VerticalPlatformExperience Vertical = "Platform experience"
 )
 
 // Countries
 type Country string
 
 const (
-	CountryBrazil    Country = "brazil"
-	CountryMexico    Country = "mexico"
-	CountryArgentina Country = "argentina"
-	CountryColombia  Country = "colombia"
-	CountryChile     Country = "chile"
-	CountryPeru      Country = "peru"
+	CountryAll       Country = "Todos"
+	CountryArgentina Country = "Argentina"
+	CountryBrazil    Country = "Brasil"
+	CountryChile     Country = "Chile"
+	CountryColombia  Country = "Colombia"
+	CountryMexico    Country = "Mexico"
+	CountryROLA      Country = "ROLA"
 )
 
 // Client types
 type ClientType string
 
 const (
-	ClientTopIssuer   ClientType = "top_issuer"
-	ClientMajor       ClientType = "major"
-	ClientMedium      ClientType = "medium"
-	ClientSmall       ClientType = "small"
-	ClientStartup     ClientType = "startup"
+	ClientAll       ClientType = "Todos"
+	ClientTopIssuer ClientType = "Top Issuer"
+	ClientTier1     ClientType = "Tier 1"
+	ClientTier2     ClientType = "Tier 2"
+	ClientTier3     ClientType = "Tier 3"
 )
 
 // Risk levels
 type RiskLevel string
 
 const (
-	RiskBlocker RiskLevel = "blocker"
-	RiskHigh    RiskLevel = "high"
-	RiskMedium  RiskLevel = "medium"
-	RiskLow     RiskLevel = "low"
+	RiskBlocker RiskLevel = "Bloqueante"
+	RiskHigh    RiskLevel = "Alto"
+	RiskMedium  RiskLevel = "Medio"
+	RiskLow     RiskLevel = "Bajo"
+	RiskNA      RiskLevel = "N/A"
 )
 
 // Economic impact types
 type EconomicImpactType string
 
 const (
-	EconomicImpactSignificant EconomicImpactType = "significant"
-	EconomicImpactModerate    EconomicImpactType = "moderate"
-	EconomicImpactLow         EconomicImpactType = "low"
-	EconomicImpactHardToQuantify EconomicImpactType = "hard_to_quantify"
+	EconomicImpactSignificant EconomicImpactType = "Aumento significativo en revenue o nueva linea revenue"
+	EconomicImpactModerate    EconomicImpactType = "Aumento moderado en revenue existente"
+	EconomicImpactLow         EconomicImpactType = "Impacto menor o dificil de cuantificar"
 )
 
 // Innovation levels
 type InnovationLevel string
 
 const (
-	InnovationDisruptive  InnovationLevel = "disruptive"
-	InnovationIncremental InnovationLevel = "incremental"
-	InnovationParity      InnovationLevel = "parity"
+	InnovationDisruptive  InnovationLevel = "Disrrustivo / Innovador"
+	InnovationIncremental InnovationLevel = "Mejora incremental"
+	InnovationParity      InnovationLevel = "Paridad con competencia"
 )
 
 // Experience impact checklist
 type ExperienceImpact struct {
-	ImproveOnboarding     bool `json:"improve_onboarding"`
-	ReduceFriction        bool `json:"reduce_friction"`
-	EnhanceSecurity       bool `json:"enhance_security"`
-	ImprovePerformance    bool `json:"improve_performance"`
-	AddNewFeatures        bool `json:"add_new_features"`
-	ImproveAccessibility  bool `json:"improve_accessibility"`
+	ImproveOnboarding    bool `json:"improve_onboarding"`
+	ReduceFriction       bool `json:"reduce_friction"`
+	EnhanceSecurity      bool `json:"enhance_security"`
+	ImprovePerformance   bool `json:"improve_performance"`
+	AddNewFeatures       bool `json:"add_new_features"`
+	ImproveAccessibility bool `json:"improve_accessibility"`
 }
 
 // Technical estimation
 type TechnicalEstimation struct {
-	EffortWeeks    int    `json:"effort_weeks"`
-	ConfidenceLevel int   `json:"confidence_level"` // 1-10
-	Dependencies   string `json:"dependencies"`
-	TechnicalRisks string `json:"technical_risks"`
+	EffortWeeks     int    `json:"effort_weeks"`
+	ConfidenceLevel int    `json:"confidence_level"` // 1-10
+	Dependencies    string `json:"dependencies"`
+	TechnicalRisks  string `json:"technical_risks"`
 }
 
 // Scoring breakdown
 type ScoreBreakdown struct {
-	CategoryScore     int `json:"category_score"`
-	VerticalScore     int `json:"vertical_score"`
-	ClientScore       int `json:"client_score"`
-	CountryScore      int `json:"country_score"`
-	RiskScore         int `json:"risk_score"`
-	EconomicScore     int `json:"economic_score"`
-	ExperienceScore   int `json:"experience_score"`
-	InnovationScore   int `json:"innovation_score"`
-	TotalScore        int `json:"total_score"`
-	Explanation       string `json:"explanation"`
+	CategoryScore   int    `json:"category_score"`
+	VerticalScore   int    `json:"vertical_score"`
+	ClientScore     int    `json:"client_score"`
+	CountryScore    int    `json:"country_score"`
+	RiskScore       int    `json:"risk_score"`
+	EconomicScore   int    `json:"economic_score"`
+	ExperienceScore int    `json:"experience_score"`
+	InnovationScore int    `json:"innovation_score"`
+	TotalScore      int    `json:"total_score"`
+	Explanation     string `json:"explanation"`
 }
 
 // Main Initiative model
 type Initiative struct {
 	ID          uuid.UUID        `json:"id" gorm:"type:uuid;primary_key"`
 	Title       string           `json:"title"`
-	Summary     string           `json:"summary"`
-	CreatorID   uuid.UUID        `json:"creator_id"`
+	Description string           `json:"description"`
 	Status      InitiativeStatus `json:"status"`
+	CreatedBy   string           `json:"created_by"`
+	CreatedAt   time.Time        `json:"created_at"`
+	UpdatedAt   time.Time        `json:"updated_at"`
 
-	// Context
-	Category    Category    `json:"category"`
-	Vertical    Vertical    `json:"vertical"`
-	Countries   []Country   `json:"countries" gorm:"type:text[]"`
-	Client      string      `json:"client"`
-	ClientType  ClientType  `json:"client_type"`
+	// New fields for Kanban
+	Quarter                   string             `json:"quarter"`
+	Score                     int                `json:"score"`
+	Category                  Category           `json:"category"`
+	Vertical                  Vertical           `json:"vertical"`
+	ClientType                ClientType         `json:"client_type"`
+	Country                   Country            `json:"country"`
+	SystemicRisk              RiskLevel          `json:"systemic_risk"`
+	EconomicImpact            EconomicImpactType `json:"economic_impact"`
+	EconomicImpactDescription string             `json:"economic_impact_description"`
+	ExperienceImpact          []string           `json:"experience_impact" gorm:"type:text[]"`
+	CompetitiveApproach       InnovationLevel    `json:"competitive_approach"`
+	ExecutiveSummary          string             `json:"executive_summary"`
+	ROI                       int                `json:"roi"`
 
-	// Business case
-	Description         string             `json:"description"`
-	EconomicImpactType  EconomicImpactType `json:"economic_impact_type"`
-	EconomicImpactNote  string             `json:"economic_impact_note"`
-
-	// Experience impact
-	ExperienceImpact ExperienceImpact `json:"experience_impact" gorm:"embedded"`
-
-	// Innovation
-	InnovationLevel InnovationLevel `json:"innovation_level"`
-
-	// Technical estimation
-	TechnicalEstimation TechnicalEstimation `json:"technical_estimation" gorm:"embedded"`
-
-	// Scoring
-	ScoreBreakdown *ScoreBreakdown `json:"score_breakdown" gorm:"embedded"`
-
-	// System risk
-	SystemicRisk RiskLevel `json:"systemic_risk"`
-
-	// Audit
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	// Legacy fields (keeping for backward compatibility)
+	Summary                string              `json:"summary,omitempty"`
+	CreatorID              uuid.UUID           `json:"creator_id,omitempty"`
+	Countries              []Country           `json:"countries,omitempty" gorm:"type:text[]"`
+	Client                 string              `json:"client,omitempty"`
+	DescriptionLegacy      string              `json:"description_legacy,omitempty"`
+	EconomicImpactType     EconomicImpactType  `json:"economic_impact_type,omitempty"`
+	EconomicImpactNote     string              `json:"economic_impact_note,omitempty"`
+	ExperienceImpactLegacy ExperienceImpact    `json:"experience_impact_legacy,omitempty" gorm:"embedded"`
+	InnovationLevel        InnovationLevel     `json:"innovation_level,omitempty"`
+	TechnicalEstimation    TechnicalEstimation `json:"technical_estimation,omitempty" gorm:"embedded"`
+	ScoreBreakdown         *ScoreBreakdown     `json:"score_breakdown,omitempty" gorm:"embedded"`
 
 	// Relations
 	Creator     User         `json:"creator,omitempty" gorm:"foreignKey:CreatorID"`
@@ -196,13 +196,13 @@ type User struct {
 
 // Message for chat functionality
 type Message struct {
-	ID           uuid.UUID    `json:"id" gorm:"type:uuid;primary_key"`
-	InitiativeID uuid.UUID    `json:"initiative_id"`
-	AuthorID     uuid.UUID    `json:"author_id"`
-	AuthorRole   UserRole     `json:"author_role"`
-	Content      string       `json:"content"`
-	Tags         []string     `json:"tags" gorm:"type:text[]"`
-	CreatedAt    time.Time    `json:"created_at"`
+	ID           uuid.UUID `json:"id" gorm:"type:uuid;primary_key"`
+	InitiativeID uuid.UUID `json:"initiative_id"`
+	AuthorID     uuid.UUID `json:"author_id"`
+	AuthorRole   UserRole  `json:"author_role"`
+	Content      string    `json:"content"`
+	Tags         []string  `json:"tags" gorm:"type:text[]"`
+	CreatedAt    time.Time `json:"created_at"`
 
 	// Relations
 	Author     User       `json:"author,omitempty" gorm:"foreignKey:AuthorID"`
@@ -211,15 +211,15 @@ type Message struct {
 
 // Agent suggestions
 type Suggestion struct {
-	ID           uuid.UUID         `json:"id" gorm:"type:uuid;primary_key"`
-	InitiativeID uuid.UUID         `json:"initiative_id"`
-	Field        string            `json:"field"`
-	SuggestedValue string          `json:"suggested_value"`
-	Rationale    string            `json:"rationale"`
-	Confidence   int               `json:"confidence"` // 1-10
-	Status       SuggestionStatus  `json:"status"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
+	ID             uuid.UUID        `json:"id" gorm:"type:uuid;primary_key"`
+	InitiativeID   uuid.UUID        `json:"initiative_id"`
+	Field          string           `json:"field"`
+	SuggestedValue string           `json:"suggested_value"`
+	Rationale      string           `json:"rationale"`
+	Confidence     int              `json:"confidence"` // 1-10
+	Status         SuggestionStatus `json:"status"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
 
 	// Relations
 	Initiative Initiative `json:"initiative,omitempty" gorm:"foreignKey:InitiativeID"`

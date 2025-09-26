@@ -63,7 +63,7 @@ func (h *AgentHandler) CompleteIntake(c *gin.Context) {
 
 	// Set creator and status
 	req.Initiative.CreatorID = userID.(uuid.UUID)
-	req.Initiative.Status = domain.StatusLoaded
+	req.Initiative.Status = domain.StatusBacklog
 
 	// Create initiative in database
 	if err := h.db.Create(req.Initiative).Error; err != nil {

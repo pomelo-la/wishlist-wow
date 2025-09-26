@@ -36,6 +36,8 @@ func (s *Server) setupRoutes() {
 	jwtSecret := getEnv("JWT_SECRET", "your-secret-key")
 	userHandler := handlers.NewUserHandler(s.db, jwtSecret)
 	initiativeHandler := handlers.NewInitiativeHandler(s.db, agentService, scoringService)
+	initiativeCRUDHandler := handlers.NewInitiativeCRUDHandler(s.db)
+	kanbanMoveHandler := handlers.NewKanbanMoveHandler(s.db)
 	agentHandler := handlers.NewAgentHandler(s.db, agentService)
 	slackHandler := handlers.NewSlackHandler()
 
@@ -66,7 +68,7 @@ func (s *Server) setupRoutes() {
 			users.PUT("/:id", userHandler.UpdateUser)
 		}
 
-		// Initiative routes
+		// Initiative routes (legacy)
 		initiatives := api.Group("/initiatives")
 		{
 			initiatives.GET("", initiativeHandler.GetInitiatives)
@@ -84,6 +86,21 @@ func (s *Server) setupRoutes() {
 			// Suggestions
 			initiatives.GET("/:id/suggestions", agentHandler.GetSuggestions)
 			initiatives.POST("/:id/suggestions/apply", agentHandler.ApplySuggestion)
+		}
+
+		// New Kanban CRUD routes
+		kanban := api.Group("/kanban")
+		{
+			kanban.GET("/initiatives", initiativeCRUDHandler.GetInitiatives)
+			kanban.GET("/initiatives/:id", initiativeCRUDHandler.GetInitiative)
+			kanban.POST("/initiatives", initiativeCRUDHandler.CreateInitiative)
+			kanban.PUT("/initiatives/:id", initiativeCRUDHandler.UpdateInitiative)
+			kanban.DELETE("/initiatives/:id", initiativeCRUDHandler.DeleteInitiative)
+			kanban.GET("/stats", initiativeCRUDHandler.GetInitiativeStats)
+
+			// Kanban movement routes
+			kanban.GET("/statuses", kanbanMoveHandler.GetKanbanStatuses)
+			kanban.PUT("/initiatives/:id/move", kanbanMoveHandler.MoveInitiative)
 		}
 
 		// Prioritized initiatives

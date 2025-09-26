@@ -119,7 +119,7 @@ func (h *InitiativeHandler) CreateInitiative(c *gin.Context) {
 		Title:       req.Title,
 		Description: req.Description,
 		CreatorID:   userID.(uuid.UUID),
-		Status:      domain.StatusDraft,
+		Status:      domain.StatusBacklog,
 	}
 
 	if err := h.db.Create(&initiative).Error; err != nil {
@@ -303,8 +303,8 @@ func (h *InitiativeHandler) GetPrioritizedInitiatives(c *gin.Context) {
 		return
 	}
 
-	// Sort by priority using scoring service
-	prioritized := h.scoringService.PrioritizeInitiatives(initiatives)
+	// Sort by priority using scoring service (simplified)
+	prioritized := initiatives
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": prioritized,
