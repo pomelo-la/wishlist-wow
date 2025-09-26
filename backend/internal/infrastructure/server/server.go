@@ -3,8 +3,6 @@ package server
 import (
 	"os"
 
-	"pomelo-wishlist/internal/application/agent"
-	"pomelo-wishlist/internal/application/scoring"
 	"pomelo-wishlist/internal/interfaces/handlers"
 	"pomelo-wishlist/internal/interfaces/middleware"
 
@@ -29,14 +27,14 @@ func New(db *gorm.DB) *Server {
 
 func (s *Server) setupRoutes() {
 	// Initialize services
-	scoringService := scoring.NewScoringService()
-	agentService := agent.NewAgentService(scoringService)
+	// scoringService := scoring.NewScoringService()
+	// agentService := agent.NewAgentService(scoringService)
 
 	// Initialize handlers
 	jwtSecret := getEnv("JWT_SECRET", "your-secret-key")
 	userHandler := handlers.NewUserHandler(s.db, jwtSecret)
-	initiativeHandler := handlers.NewInitiativeHandler(s.db, agentService, scoringService)
-	agentHandler := handlers.NewAgentHandler(s.db, agentService)
+	initiativeHandler := handlers.NewInitiativeHandler(s.db)
+	// agentHandler := handlers.NewAgentHandler(s.db, agentService)
 	slackHandler := handlers.NewSlackHandler()
 
 	// Middleware
@@ -77,26 +75,26 @@ func (s *Server) setupRoutes() {
 			initiatives.POST("/:id/status", initiativeHandler.UpdateStatus)
 			initiatives.POST("/:id/score", initiativeHandler.CalculateScore)
 
-			// Messages (chat functionality)
-			initiatives.GET("/:id/messages", agentHandler.GetMessages)
-			initiatives.POST("/:id/messages", agentHandler.AddMessage)
+			// Messages (chat functionality) - Temporarily disabled
+			// initiatives.GET("/:id/messages", agentHandler.GetMessages)
+			// initiatives.POST("/:id/messages", agentHandler.AddMessage)
 
-			// Suggestions
-			initiatives.GET("/:id/suggestions", agentHandler.GetSuggestions)
-			initiatives.POST("/:id/suggestions/apply", agentHandler.ApplySuggestion)
+			// Suggestions - Temporarily disabled
+			// initiatives.GET("/:id/suggestions", agentHandler.GetSuggestions)
+			// initiatives.POST("/:id/suggestions/apply", agentHandler.ApplySuggestion)
 		}
 
 		// Prioritized initiatives
 		api.GET("/initiatives/prioritized", initiativeHandler.GetPrioritizedInitiatives)
 
-		// Agent routes
-		agent := api.Group("/agent")
-		{
-			agent.POST("/intake", agentHandler.IntakeIntervention)
-			agent.POST("/intake/complete", agentHandler.CompleteIntake)
-			agent.POST("/estimation", agentHandler.EstimationIntervention)
-			agent.POST("/scoring", agentHandler.ScoringIntervention)
-		}
+		// Agent routes - Temporarily disabled
+		// agent := api.Group("/agent")
+		// {
+		// 	agent.POST("/intake", agentHandler.IntakeIntervention)
+		// 	agent.POST("/intake/complete", agentHandler.CompleteIntake)
+		// 	agent.POST("/estimation", agentHandler.EstimationIntervention)
+		// 	agent.POST("/scoring", agentHandler.ScoringIntervention)
+		// }
 
 		// Slack routes
 		slack := api.Group("/slack")
