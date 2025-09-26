@@ -119,6 +119,19 @@ export default function InitiativeEvaluationPage() {
     }
   };
 
+  // Función para manejar cambios en el input de búsqueda
+  const handleUserSearchChange = (value: string) => {
+    setUserSearchTerm(value);
+    
+    // Si no hay usuarios cargados y el término tiene al menos 2 caracteres, cargar usuarios
+    if (slackUsers.length === 0 && value.length >= 2) {
+      loadSlackUsers();
+    }
+    
+    // Mostrar dropdown si hay término de búsqueda
+    setShowUserDropdown(value.length > 0);
+  };
+
   // Filtrar usuarios basado en el término de búsqueda
   const filteredUsers = slackUsers.filter(user => 
     user.real_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
@@ -847,23 +860,29 @@ export default function InitiativeEvaluationPage() {
                         <input
                           type="text"
                           value={userSearchTerm}
-                          onChange={(e) => {
-                            setUserSearchTerm(e.target.value);
-                            setShowUserDropdown(true);
-                          }}
+                          onChange={(e) => handleUserSearchChange(e.target.value)}
                           onFocus={() => setShowUserDropdown(true)}
-                          placeholder="Buscar usuarios de Slack..."
+                          placeholder="Buscar usuarios de Slack... (escribe 2+ caracteres)"
                           className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
                         />
                         
-                        {/* Botón para cargar usuarios */}
-                        <button
-                          onClick={loadSlackUsers}
-                          disabled={isLoadingUsers}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                        >
-                          {isLoadingUsers ? 'Cargando...' : 'Cargar'}
-                        </button>
+                        {/* Botón para cargar usuarios - solo visible si no hay usuarios y término < 2 caracteres */}
+                        {slackUsers.length === 0 && userSearchTerm.length < 2 && (
+                          <button
+                            onClick={loadSlackUsers}
+                            disabled={isLoadingUsers}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                          >
+                            {isLoadingUsers ? 'Cargando...' : 'Cargar'}
+                          </button>
+                        )}
+
+                        {/* Indicador de carga automática */}
+                        {isLoadingUsers && userSearchTerm.length >= 2 && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
 
                         {/* Dropdown de usuarios */}
                         {showUserDropdown && userSearchTerm && filteredUsers.length > 0 && (
