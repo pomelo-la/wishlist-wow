@@ -393,7 +393,8 @@ export default function InitiativeEvaluationPage() {
                 { id: 'overview', label: 'Vista general', icon: Eye },
                 { id: 'prod-it', label: 'Prod & IT', icon: Settings },
                 { id: 'dependency', label: 'Dependencia', icon: FileText },
-                { id: 'activity', label: 'Activity', icon: Activity }
+                { id: 'activity', label: 'Activity', icon: Activity },
+                { id: 'review', label: 'Revisión', icon: ClipboardCheck }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -489,6 +490,168 @@ export default function InitiativeEvaluationPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-gray-900">Actividad</h3>
                 <p className="text-gray-600">Historial de actividad...</p>
+              </div>
+            )}
+
+            {activeTab === 'review' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                  <ClipboardCheck size={20} className="mr-2 text-blue-600" />
+                  Crear Revisión de Tarjeta
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Información de la iniciativa */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Iniciativa a Revisar</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Título</label>
+                        <p className="text-sm text-gray-900 font-medium">{initiative?.title}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                          {initiative?.status.replace('-', ' ')}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
+                        <p className="text-sm text-gray-900">{initiative?.category}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">País</label>
+                        <p className="text-sm text-gray-900">{initiative?.country}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selección de usuarios */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-900">
+                      Seleccionar Revisores
+                    </label>
+                    
+                    {/* Usuarios seleccionados */}
+                    {selectedReviewers.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedReviewers.map(userId => {
+                          const user = slackUsers.find(u => u.id === userId);
+                          return (
+                            <span
+                              key={userId}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                            >
+                              {user?.real_name || user?.name || userId}
+                              <button
+                                onClick={() => removeSelectedUser(userId)}
+                                className="ml-2 text-blue-600 hover:text-blue-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Search input */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={userSearchTerm}
+                        onChange={(e) => handleUserSearchChange(e.target.value)}
+                        onFocus={() => setShowUserDropdown(userSearchTerm.length > 0)}
+                        placeholder="Buscar usuarios de Slack... (escribe 2+ caracteres)"
+                        className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                      
+                      {/* Botón para cargar usuarios - solo visible si no hay usuarios y término < 2 caracteres */}
+                      {slackUsers.length === 0 && userSearchTerm.length < 2 && (
+                        <button
+                          onClick={loadSlackUsers}
+                          disabled={isLoadingUsers}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                        >
+                          {isLoadingUsers ? 'Cargando...' : 'Cargar'}
+                        </button>
+                      )}
+
+                      {/* Indicador de carga automática */}
+                      {isLoadingUsers && userSearchTerm.length >= 2 && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+
+                      {/* Dropdown de usuarios */}
+                      {showUserDropdown && userSearchTerm && filteredUsers.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {filteredUsers.map(user => (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                toggleUserSelection(user.id);
+                                setUserSearchTerm('');
+                                setShowUserDropdown(false);
+                              }}
+                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                                selectedReviewers.includes(user.id) ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-center">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {user.real_name || user.name}
+                                  </p>
+                                  {user.email && (
+                                    <p className="text-xs text-gray-500">{user.email}</p>
+                                  )}
+                                </div>
+                                {selectedReviewers.includes(user.id) && (
+                                  <CheckCircle size={16} className="text-blue-600" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comentario de revisión */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-900">
+                      Comentario de Revisión
+                    </label>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Escribe tu comentario de revisión aquí..."
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                    />
+                  </div>
+
+                  {/* Botón de envío */}
+                  <button
+                    onClick={handleSendReview}
+                    disabled={selectedReviewers.length === 0 || !reviewComment.trim() || isSendingReview}
+                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {isSendingReview ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} className="mr-2" />
+                        Enviar a {selectedReviewers.length} usuario(s)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>

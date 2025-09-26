@@ -1,0 +1,389 @@
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[9.357ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND table_type = 'BASE TABLE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.067ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[12.750ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'wishlist' AND table_schema = CURRENT_SCHEMA() AND table_name = 'users'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.604ms] [34;1m[rows:-][0m SELECT * FROM "users" LIMIT 1
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[5.501ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'users' AND constraint_type = 'UNIQUE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[4.959ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'users'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.695ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'users'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.856ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.290ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'email') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.207ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'name') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.173ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'role') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.201ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'is_active') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.121ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.313ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'updated_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.415ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND table_type = 'BASE TABLE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.206ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[3.836ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'wishlist' AND table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.610ms] [34;1m[rows:-][0m SELECT * FROM "initiatives" LIMIT 1
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[6.209ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'initiatives' AND constraint_type = 'UNIQUE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[6.044ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'initiatives'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.421ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'initiatives'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.306ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.289ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'title') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.353ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'summary') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.333ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'creator_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.355ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'status') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.333ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'category') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.317ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'vertical') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.287ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'countries') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.301ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'client') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.291ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'client_type') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.293ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'description') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.313ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'economic_impact_type') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.292ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'economic_impact_note') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.307ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'improve_onboarding') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.324ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'reduce_friction') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.303ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'enhance_security') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.314ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'improve_performance') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.302ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'add_new_features') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.301ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'improve_accessibility') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.291ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'innovation_level') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.290ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'effort_weeks') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.453ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'confidence_level') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.261ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'dependencies') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.305ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'technical_risks') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.319ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'category_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.301ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'vertical_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.303ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'client_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.290ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'country_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.287ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'risk_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.326ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'economic_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.308ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'experience_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.278ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'innovation_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.260ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'total_score') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.259ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'explanation') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.269ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'systemic_risk') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.286ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.272ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND column_name = 'updated_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'initiatives' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[1.221ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'initiatives' AND constraint_name = 'fk_initiatives_creator'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.495ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND table_type = 'BASE TABLE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.200ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[2.660ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'wishlist' AND table_schema = CURRENT_SCHEMA() AND table_name = 'messages'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.361ms] [34;1m[rows:-][0m SELECT * FROM "messages" LIMIT 1
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[3.552ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'messages' AND constraint_type = 'UNIQUE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[3.247ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'messages'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.323ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'messages'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.349ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.274ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'initiative_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.247ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'author_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.250ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'author_role') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.285ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'content') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.312ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'tags') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.255ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'messages' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.664ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND constraint_name = 'fk_messages_author'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.601ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'messages' AND constraint_name = 'fk_initiatives_messages'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.392ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND table_type = 'BASE TABLE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.183ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[2.404ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'wishlist' AND table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.343ms] [34;1m[rows:-][0m SELECT * FROM "suggestions" LIMIT 1
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[3.065ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'suggestions' AND constraint_type = 'UNIQUE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[3.206ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'suggestions'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.369ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'suggestions'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.322ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.303ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'initiative_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.294ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'field') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.292ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'suggested_value') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.273ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'rationale') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.281ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'confidence') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.285ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'status') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.271ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.267ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND column_name = 'updated_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'suggestions' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.649ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'suggestions' AND constraint_name = 'fk_initiatives_suggestions'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.396ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND table_type = 'BASE TABLE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.179ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[2.302ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'wishlist' AND table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.319ms] [34;1m[rows:-][0m SELECT * FROM "audit_logs" LIMIT 1
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[2.860ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'audit_logs' AND constraint_type = 'UNIQUE'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[2.883ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'wishlist' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'audit_logs'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.304ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'audit_logs'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.346ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.301ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'initiative_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.267ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'user_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.295ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'action') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.253ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'field') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.281ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'old_value') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.300ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'new_value') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.288ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'audit_logs' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.692ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND constraint_name = 'fk_initiatives_audit_logs'
+
+2025/09/26 17:44:32 [32m/Users/federicodon/wishlist-wow/backend/internal/infrastructure/database/database.go:42
+[0m[33m[0.703ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'audit_logs' AND constraint_name = 'fk_audit_logs_user'
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+DEBUG: CLOUDFLARE_AI_GATEWAY_TOKEN loaded: tu_token_aqui
+DEBUG: CLOUDFLARE_AI_GATEWAY_URL loaded: https://gateway.ai.cloudflare.com/v1/tu_account_id/pomethon_wow/openai/v1
+WARNING: Cloudflare AI Gateway not configured, using mock responses
+[GIN-debug] GET    /health                   --> pomelo-wishlist/internal/infrastructure/server.(*Server).setupRoutes.func1 (4 handlers)
+[GIN-debug] POST   /auth/login               --> pomelo-wishlist/internal/interfaces/handlers.(*UserHandler).Login-fm (4 handlers)
+[GIN-debug] POST   /auth/register            --> pomelo-wishlist/internal/interfaces/handlers.(*UserHandler).Register-fm (4 handlers)
+[GIN-debug] GET    /api/users/me             --> pomelo-wishlist/internal/interfaces/handlers.(*UserHandler).GetCurrentUser-fm (4 handlers)
+[GIN-debug] GET    /api/users                --> pomelo-wishlist/internal/interfaces/handlers.(*UserHandler).GetUsers-fm (4 handlers)
+[GIN-debug] PUT    /api/users/:id            --> pomelo-wishlist/internal/interfaces/handlers.(*UserHandler).UpdateUser-fm (4 handlers)
+[GIN-debug] GET    /api/initiatives          --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).GetInitiatives-fm (4 handlers)
+[GIN-debug] POST   /api/initiatives          --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).CreateInitiative-fm (4 handlers)
+[GIN-debug] GET    /api/initiatives/:id      --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).GetInitiative-fm (4 handlers)
+[GIN-debug] PUT    /api/initiatives/:id      --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).UpdateInitiative-fm (4 handlers)
+[GIN-debug] DELETE /api/initiatives/:id      --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).DeleteInitiative-fm (4 handlers)
+[GIN-debug] POST   /api/initiatives/:id/status --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).UpdateStatus-fm (4 handlers)
+[GIN-debug] POST   /api/initiatives/:id/score --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).CalculateScore-fm (4 handlers)
+[GIN-debug] GET    /api/initiatives/:id/messages --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).GetMessages-fm (4 handlers)
+[GIN-debug] POST   /api/initiatives/:id/messages --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).AddMessage-fm (4 handlers)
+[GIN-debug] GET    /api/initiatives/:id/suggestions --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).GetSuggestions-fm (4 handlers)
+[GIN-debug] POST   /api/initiatives/:id/suggestions/apply --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).ApplySuggestion-fm (4 handlers)
+[GIN-debug] GET    /api/initiatives/prioritized --> pomelo-wishlist/internal/interfaces/handlers.(*InitiativeHandler).GetPrioritizedInitiatives-fm (4 handlers)
+[GIN-debug] POST   /api/agent/intake         --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).IntakeIntervention-fm (4 handlers)
+[GIN-debug] POST   /api/agent/intake/complete --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).CompleteIntake-fm (4 handlers)
+[GIN-debug] POST   /api/agent/estimation     --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).EstimationIntervention-fm (4 handlers)
+[GIN-debug] POST   /api/agent/scoring        --> pomelo-wishlist/internal/interfaces/handlers.(*AgentHandler).ScoringIntervention-fm (4 handlers)
+[GIN-debug] POST   /api/slack/send-message   --> pomelo-wishlist/internal/interfaces/handlers.(*SlackHandler).SendMessage-fm (4 handlers)
+[GIN-debug] GET    /api/slack/users          --> pomelo-wishlist/internal/interfaces/handlers.(*SlackHandler).GetUsers-fm (4 handlers)
+[GIN-debug] GET    /api/dashboard/stats      --> pomelo-wishlist/internal/infrastructure/server.(*Server).getDashboardStats-fm (4 handlers)
+[GIN-debug] GET    /api/dashboard/initiatives-by-status --> pomelo-wishlist/internal/infrastructure/server.(*Server).getInitiativesByStatus-fm (4 handlers)
+[GIN-debug] GET    /api/dashboard/initiatives-by-category --> pomelo-wishlist/internal/infrastructure/server.(*Server).getInitiativesByCategory-fm (4 handlers)
+2025/09/26 17:44:32 Server starting on port 8080
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8080
+[GIN] 2025/09/26 - 17:47:12 | 200 |  584.853959ms |             ::1 | GET      "/api/slack/users"
+[GIN] 2025/09/26 - 17:47:21 | 200 |  380.450833ms |             ::1 | GET      "/api/slack/users"
