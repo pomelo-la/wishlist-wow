@@ -273,7 +273,18 @@ func (a *AgentService) continueIntake(ctx context.Context, req IntakeRequest) (*
 		return a.handleConfirmationResponse(ctx, req, userInput)
 	}
 
-	// El LLM decidirá si tiene suficiente información para generar el resumen
+	// PRIMERO: Verificar si tenemos suficiente información con un prompt específico de suficiencia
+	hasSufficientInfo, err := a.checkSufficiency(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("error checking sufficiency: %w", err)
+	}
+
+	if hasSufficientInfo {
+		fmt.Printf("DEBUG: Prompt de suficiencia determinó que hay información suficiente, generando confirmación\n")
+		return a.generateConfirmationSummary(ctx, req)
+	}
+
+	// SEGUNDO: Si no hay suficiente información, generar nuevas preguntas
 
 	systemPrompt := `Eres un Product Manager senior especializado en fintech, trabajando para Pomelo - una empresa líder de infraestructura de pagos en América Latina. Tu trabajo es guiar la creación de iniciativas de negocio tecnológicas con un enfoque experto en el ecosistema fintech.
 
@@ -381,31 +392,39 @@ IMPORTANTE: Debes devolver ÚNICAMENTE un JSON válido, sin texto adicional ante
   "has_sufficient_info": false
 }
 
-## DECISIÓN DE SUFICIENCIA
-Evalúa si tienes suficiente información para generar un resumen ejecutivo completo. DEBES tener TODOS estos campos:
+## INSTRUCCIONES PARA GENERAR PREGUNTAS
+Tu única función es generar preguntas inteligentes para recopilar información. NO debes decidir si la información es suficiente.
 
-**CAMPOS OBLIGATORIOS:**
-- title: Título claro de la iniciativa
-- summary: Resumen ejecutivo de 1-2 oraciones
-- category: regulatory|risk|performance|value_prop|new_product
-- vertical: processing|core|bin-sponsor|card-mgmt|tokenization|fraud|platform (solo para regulatory/performance)
-- countries: Array con al menos un país ["brazil","mexico","argentina","colombia","chile","peru"]
-- client_type: top_issuer|major|medium|small|startup
-- problem_description: Descripción técnica del problema a resolver
-- business_case: Justificación de negocio con métricas/ROI
-- economic_impact_type: significant|moderate|low|hard_to_quantify
-- client_segment: Perfil detallado del cliente objetivo
+**CAMPOS QUE DEBES RECOPILAR:**
+1. **title**: Título claro de la iniciativa
+2. **summary**: Resumen ejecutivo de 1-2 oraciones
+3. **category**: regulatory|risk|performance|value_prop|new_product
+4. **vertical**: processing|core|bin-sponsor|card-mgmt|tokenization|fraud|platform
+5. **countries**: Array con al menos un país ["brazil","mexico","argentina","colombia","chile","peru"]
+6. **clientType**: top_issuer|major|medium|small|startup
+7. **problem_description**: Descripción técnica del problema a resolver
+8. **business_case**: Justificación de negocio con métricas/ROI
+9. **economic_impact**: significant|moderate|low|hard_to_quantify
+10. **client_segment**: Perfil detallado del cliente objetivo
 
-**REGLAS DE SUFICIENCIA:**
-- Si falta CUALQUIERA de estos campos, continúa preguntando
-- NO generes resumen hasta tener TODOS los campos
-- Haz preguntas específicas para completar campos faltantes
-- Prioriza campos críticos: category, vertical, client_type, countries
+**INSTRUCCIONES:**
+1. **Genera preguntas inteligentes** basadas en la información faltante
+2. **Orientá tus preguntas** para recopilar los campos que no tienes
+3. **Prioriza campos críticos**: category, vertical, clientType, countries
+4. **SIEMPRE** devuelve "has_sufficient_info": false - NO decidas suficiencia
+5. **SIEMPRE** devuelve "next_step": "continue" - NO decidas cuándo confirmar
 
-Solo cuando tengas TODOS los campos, establece:
-- "next_step": "confirm"
-- "has_sufficient_info": true
-- "is_complete": true
+**EJEMPLO DE PREGUNTAS:**
+- Usuario dice: "Quiero mejorar el procesamiento de pagos en Brasil"
+- Tienes: countries=["brazil"], vertical="processing" (inferido)
+- Faltan: title, summary, category, clientType, problem_description, business_case, economic_impact, client_segment
+- Próxima pregunta: "¿Cuál es la categoría principal? ¿Es un tema de rendimiento, regulación, o propuesta de valor?"
+
+**IMPORTANTE:**
+- NUNCA decidas suficiencia - solo genera preguntas
+- SIEMPRE devuelve "has_sufficient_info": false
+- SIEMPRE devuelve "next_step": "continue"
+- La decisión de suficiencia la toma otro sistema
 
 ## EJEMPLOS CONTEXTUALIZADOS
 - Input: "Necesito reducir la latencia de autorización"
@@ -443,8 +462,20 @@ Solo cuando tengas TODOS los campos, establece:
 		initiativeJSON, _ := json.Marshal(req.Initiative)
 		contextInfo += fmt.Sprintf("\nDatos extraídos de la iniciativa hasta ahora: %s", string(initiativeJSON))
 	}
+	// Incluir TODA la conversación previa para evitar preguntas repetidas
 	if req.Context != nil {
-		// Solo incluir campos que no sean conversation_history para evitar duplicación
+		if history, ok := req.Context["conversation_history"].([]interface{}); ok && len(history) > 0 {
+			contextInfo += "\n\nHISTORIAL COMPLETO DE LA CONVERSACIÓN:\n"
+			for i, entry := range history {
+				if entryMap, ok := entry.(map[string]interface{}); ok {
+					if user, exists := entryMap["user"]; exists {
+						contextInfo += fmt.Sprintf("%d. Usuario: %v\n", i+1, user)
+					}
+				}
+			}
+		}
+
+		// Incluir otros campos de contexto
 		contextCopy := make(map[string]interface{})
 		for k, v := range req.Context {
 			if k != "conversation_history" {
@@ -473,13 +504,106 @@ Solo cuando tengas TODOS los campos, establece:
 		return nil, fmt.Errorf("error parsing OpenAI response: %w", err)
 	}
 
-	// Si el LLM decidió que tiene suficiente información, generar confirmación
-	if intakeResponse.NextStep == "confirm" || intakeResponse.HasSufficientInfo {
-		fmt.Printf("DEBUG: LLM decidió que tiene suficiente información, generando confirmación\n")
-		return a.generateConfirmationSummary(ctx, req)
+	// Ya verificamos suficiencia antes, así que solo devolvemos la respuesta
+	return &intakeResponse, nil
+}
+
+// checkSufficiency verifica si tenemos suficiente información usando un prompt específico
+func (a *AgentService) checkSufficiency(ctx context.Context, req IntakeRequest) (bool, error) {
+	// Preparar contexto completo de la conversación
+	contextInfo := fmt.Sprintf("Input actual del usuario: %s", req.UserInput)
+
+	// Incluir TODA la conversación previa
+	if req.Context != nil {
+		if history, ok := req.Context["conversation_history"].([]interface{}); ok && len(history) > 0 {
+			contextInfo += "\n\nHISTORIAL COMPLETO DE LA CONVERSACIÓN:\n"
+			for i, entry := range history {
+				if entryMap, ok := entry.(map[string]interface{}); ok {
+					if user, exists := entryMap["user"]; exists {
+						contextInfo += fmt.Sprintf("%d. Usuario: %v\n", i+1, user)
+					}
+				}
+			}
+		}
 	}
 
-	return &intakeResponse, nil
+	// Incluir datos extraídos hasta ahora
+	if req.Initiative != nil {
+		initiativeJSON, _ := json.Marshal(req.Initiative)
+		contextInfo += fmt.Sprintf("\nDatos extraídos de la iniciativa hasta ahora: %s", string(initiativeJSON))
+	}
+
+	// Prompt específico para verificar suficiencia
+	sufficiencyPrompt := `Eres un analista experto que determina si tenemos suficiente información para crear una iniciativa de negocio fintech.
+
+Tu única tarea es analizar la conversación completa y determinar si tenemos TODOS los campos obligatorios.
+
+CAMPOS OBLIGATORIOS QUE DEBES VERIFICAR:
+1. **title**: Título claro de la iniciativa
+2. **summary**: Resumen ejecutivo de 1-2 oraciones
+3. **category**: regulatory|risk|performance|value_prop|new_product
+4. **vertical**: processing|core|bin-sponsor|card-mgmt|tokenization|fraud|platform
+5. **countries**: Array con al menos un país ["brazil","mexico","argentina","colombia","chile","peru"]
+6. **clientType**: top_issuer|major|medium|small|startup
+7. **problem_description**: Descripción técnica del problema a resolver
+8. **business_case**: Justificación de negocio con métricas/ROI
+9. **economic_impact**: significant|moderate|low|hard_to_quantify
+10. **client_segment**: Perfil detallado del cliente objetivo
+
+REGLAS ESTRICTAS DE VALIDACIÓN:
+- **countries**: DEBE mencionar al menos un país específico (brasil, mexico, argentina, colombia, chile, peru). Si no se menciona ningún país, el campo está INCOMPLETO.
+- **category**: DEBE especificar exactamente uno de: regulatory, risk, performance, value_prop, new_product
+- **vertical**: DEBE especificar exactamente uno de: processing, core, bin-sponsor, card-mgmt, tokenization, fraud, platform
+- **clientType**: DEBE especificar exactamente uno de: top_issuer, major, medium, small, startup
+- **economic_impact**: DEBE especificar exactamente uno de: significant, moderate, low, hard_to_quantify
+- **title**: DEBE ser un título específico, no genérico
+- **summary**: DEBE ser un resumen concreto de 1-2 oraciones
+- **problem_description**: DEBE describir el problema técnico específico
+- **business_case**: DEBE incluir justificación de negocio con métricas/ROI
+- **client_segment**: DEBE describir el perfil específico del cliente
+
+INSTRUCCIONES:
+- Analiza TODA la conversación proporcionada
+- Identifica qué información se ha mencionado explícitamente
+- NO infieras información que no fue mencionada
+- Si falta CUALQUIERA de los 10 campos, la respuesta es "insufficient"
+- Solo si tienes TODOS los 10 campos, la respuesta es "sufficient"
+- Para "countries": Si no se menciona explícitamente al menos un país, marca como FALTANTE
+- Sé estricto: es mejor marcar como insuficiente que aceptar información incompleta
+
+FORMATO DE RESPUESTA:
+Responde ÚNICAMENTE con un JSON válido:
+{
+  "sufficient": true|false,
+  "missing_fields": ["lista", "de", "campos", "faltantes"],
+  "reasoning": "explicación breve de por qué es suficiente o insuficiente"
+}
+
+IMPORTANTE: Responde SOLO con el JSON, sin texto adicional.`
+
+	response, err := a.callOpenAI(ctx, sufficiencyPrompt, contextInfo)
+	if err != nil {
+		return false, fmt.Errorf("error calling OpenAI for sufficiency check: %w", err)
+	}
+
+	// Parse JSON response
+	var sufficiencyResponse struct {
+		Sufficient    bool     `json:"sufficient"`
+		MissingFields []string `json:"missing_fields"`
+		Reasoning     string   `json:"reasoning"`
+	}
+
+	if err := json.Unmarshal([]byte(response), &sufficiencyResponse); err != nil {
+		fmt.Printf("DEBUG: Sufficiency JSON parsing error: %v\n", err)
+		fmt.Printf("DEBUG: Sufficiency response: %s\n", response)
+		return false, fmt.Errorf("error parsing sufficiency response: %w", err)
+	}
+
+	fmt.Printf("DEBUG: Sufficiency check result: %v\n", sufficiencyResponse.Sufficient)
+	fmt.Printf("DEBUG: Missing fields: %v\n", sufficiencyResponse.MissingFields)
+	fmt.Printf("DEBUG: Reasoning: %s\n", sufficiencyResponse.Reasoning)
+
+	return sufficiencyResponse.Sufficient, nil
 }
 
 // shouldCompleteIntake verifica si tenemos suficiente información para completar el intake

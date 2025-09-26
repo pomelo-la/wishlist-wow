@@ -292,6 +292,21 @@ export default function IntakeChat() {
     }
   };
 
+  const handleContinueQuestions = () => {
+    setIsComplete(false);
+    setExecutiveSummary('');
+    
+    // Add a message indicating we're continuing
+    const continueMessage: Message = {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: "Perfecto, continuemos con más preguntas para refinar la iniciativa.",
+      section: 'continue',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, continueMessage]);
+  };
+
   const jumpToSection = (sectionId: string) => {
     // This function is now simplified since we're using dynamic questions
     console.log('Jump to section:', sectionId);
@@ -374,21 +389,128 @@ export default function IntakeChat() {
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-lg p-4 rounded-lg ${
+                  className={`max-w-2xl ${
                     message.type === 'user'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-blue-600 text-white p-4 rounded-lg'
                       : message.section === 'summary'
-                      ? 'bg-green-50 border border-green-200 text-green-900'
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-sm'
+                      : message.section === 'actions'
+                      ? 'bg-blue-50 border border-blue-200 text-blue-900 p-4 rounded-lg'
                       : message.section === 'confirm'
-                      ? 'bg-blue-50 border border-blue-200 text-blue-900'
+                      ? 'bg-blue-50 border border-blue-200 text-blue-900 p-4 rounded-lg'
                       : message.section === 'success'
-                      ? 'bg-green-100 border border-green-300 text-green-800'
+                      ? 'bg-green-100 border border-green-300 text-green-800 p-4 rounded-lg'
                       : message.section === 'error'
-                      ? 'bg-red-50 border border-red-200 text-red-900'
-                      : 'bg-white border border-gray-200 text-gray-900'
+                      ? 'bg-red-50 border border-red-200 text-red-900 p-4 rounded-lg'
+                      : 'bg-white border border-gray-200 text-gray-900 p-4 rounded-lg'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {/* Summary content with better formatting */}
+                  {message.section === 'summary' && message.content.includes('¿Te parece correcto este contenido?') ? (
+                    <div className="p-6">
+                      {/* Header */}
+                      <div className="flex items-center mb-4">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                          <Check size={16} className="text-green-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-green-800">Resumen de la Iniciativa</h3>
+                      </div>
+                      
+                      {/* Content with better formatting */}
+                      <div className="space-y-4 mb-6">
+                        {message.content.split('¿Te parece correcto este contenido?')[0].split('\n').map((line, index) => {
+                          if (line.startsWith('**') && line.endsWith('**')) {
+                            return (
+                              <div key={index} className="border-l-4 border-green-300 pl-4">
+                                <h4 className="text-base font-semibold text-green-800 mb-2">
+                                  {line.replace(/\*\*/g, '')}
+                                </h4>
+                              </div>
+                            );
+                          } else if (line.trim()) {
+                            return (
+                              <p key={index} className="text-sm leading-relaxed text-green-900 ml-4">
+                                {line}
+                              </p>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                      
+                      {/* Confirmation question */}
+                      <div className="bg-white/60 rounded-lg p-4 mb-6 border border-green-200">
+                        <p className="text-sm font-medium text-green-800 mb-4">
+                          ¿Te parece correcto este contenido? Responde 'sí' para confirmar o 'no' para modificar.
+                        </p>
+                        
+                        {/* Action buttons */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <button
+                            onClick={handleCompleteInitiative}
+                            disabled={isLoading}
+                            className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm transition-all duration-200 flex items-center justify-center"
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 size={16} className="mr-2 animate-spin" />
+                                Creando...
+                              </>
+                            ) : (
+                              <>
+                                <Check size={16} className="mr-2" />
+                                Crear Iniciativa
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleContinueQuestions}
+                            disabled={isLoading}
+                            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm transition-all duration-200 flex items-center justify-center"
+                          >
+                            <Plus size={16} className="mr-2" />
+                            Seguir Respondiendo
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      
+                      {/* Action buttons for other cases */}
+                      {message.section === 'actions' && (
+                        <div className="mt-3 flex space-x-2">
+                          <button
+                            onClick={handleCompleteInitiative}
+                            disabled={isLoading}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 size={14} className="mr-1 animate-spin" />
+                                Creando...
+                              </>
+                            ) : (
+                              <>
+                                <Check size={14} className="mr-1" />
+                                Crear Iniciativa
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleContinueQuestions}
+                            disabled={isLoading}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                          >
+                            <Plus size={14} className="mr-1" />
+                            Seguir Respondiendo
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
                   <p className={`text-xs mt-2 ${
                     message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}>
