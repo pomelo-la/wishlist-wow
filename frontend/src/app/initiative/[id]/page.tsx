@@ -54,7 +54,6 @@ export default function InitiativeEvaluationPage() {
     unreachedCases: ''
   });
 
-<<<<<<< Updated upstream
   const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
   const [reviewComment, setReviewComment] = useState('');
   const [isSendingReview, setIsSendingReview] = useState(false);
@@ -63,45 +62,6 @@ export default function InitiativeEvaluationPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-  useEffect(() => {
-    if (params.id) {
-      const foundInitiative = mockInitiatives.find(i => i.id === params.id);
-      setInitiative(foundInitiative || null);
-      
-      if (foundInitiative) {
-        setStructuredFields({
-          effortDays: foundInitiative.effortEstimate || 0,
-          confidence: foundInitiative.confidence || 0,
-          quarter: foundInitiative.quarter || '',
-          benchmarks: '',
-          uncoveredCases: '',
-          regulatoryNotes: ''
-        });
-      }
-      
-      // Simular loading
-      setTimeout(() => setIsLoading(false), 800);
-    }
-  }, [params.id]);
-
-  // Cerrar dropdown cuando se hace click fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.user-dropdown-container')) {
-        setShowUserDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const availableTags = [
-    'estimacion', 'benchmark', 'riesgo', 'dependencia', 
-    'regulacion', 'arquitectura', 'ux', 'negocio'
-  ];
-=======
   // Cargar datos inmediatamente sin spinner
   const foundInitiative = mockInitiatives.find(i => i.id === params.id);
   if (!initiative && foundInitiative) {
@@ -127,7 +87,6 @@ export default function InitiativeEvaluationPage() {
       }
     ]);
   }
->>>>>>> Stashed changes
 
   // Función para cargar usuarios de Slack
   const loadSlackUsers = async () => {
@@ -346,30 +305,6 @@ export default function InitiativeEvaluationPage() {
             </div>
           </div>
 
-<<<<<<< Updated upstream
-          {/* Tabs creativos */}
-          <div className="flex space-x-1 bg-slate-100/50 p-1 rounded-2xl">
-            {[
-              { id: 'overview', label: 'Vista General', icon: Eye },
-              { id: 'evaluation', label: 'Chat Evaluación', icon: MessageSquare },
-              { id: 'fields', label: 'Campos Técnicos', icon: Settings },
-              { id: 'activity', label: 'Actividad', icon: Activity },
-              { id: 'review', label: 'Revisión', icon: ClipboardCheck }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-white text-blue-600 shadow-lg transform scale-105'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <tab.icon size={18} className="mr-2" />
-                {tab.label}
-              </button>
-            ))}
-=======
           {/* Chat Messages Area - Integrated style */}
           <div className="flex-1 mx-6 mb-6">
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
@@ -446,7 +381,6 @@ export default function InitiativeEvaluationPage() {
                 </div>
               </div>
             </div>
->>>>>>> Stashed changes
           </div>
         </div>
 
@@ -559,213 +493,6 @@ export default function InitiativeEvaluationPage() {
             )}
           </div>
 
-<<<<<<< Updated upstream
-          {activeTab === 'activity' && (
-            <div className="lg:col-span-3">
-              <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
-                <h3 className="text-2xl font-semibold text-slate-900 mb-6">Timeline de Actividad</h3>
-                
-                <div className="space-y-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User size={16} className="text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-white rounded-xl p-4 shadow-sm border border-white/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-slate-900">Iniciativa creada</span>
-                          <span className="text-xs text-slate-500">{initiative.createdAt.toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-slate-600 text-sm">por {initiative.createdBy}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-4">
-                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <Clock size={16} className="text-yellow-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-white rounded-xl p-4 shadow-sm border border-white/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-slate-900">Estado actual</span>
-                          <span className="text-xs text-slate-500">Ahora</span>
-                        </div>
-                        <p className="text-slate-600 text-sm capitalize">{initiative.status.replace('-', ' ')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'review' && (
-            <div className="lg:col-span-3">
-              <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
-                <h3 className="text-2xl font-semibold text-slate-900 mb-6 flex items-center">
-                  <ClipboardCheck size={24} className="mr-3 text-blue-600" />
-                  Crear Revisión de Tarjeta
-                </h3>
-                
-                <div className="space-y-6">
-                  {/* Información de la iniciativa */}
-                  <div className="bg-slate-50 rounded-xl p-6">
-                    <h4 className="text-lg font-semibold text-slate-900 mb-4">Iniciativa a Revisar</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
-                        <p className="text-slate-900 font-medium">{initiative?.title}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
-                        <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
-                          {initiative?.status.replace('-', ' ')}
-                        </span>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
-                        <p className="text-slate-900 capitalize">{initiative?.category.replace('-', ' ')}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">País</label>
-                        <p className="text-slate-900">{initiative?.country}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Formulario de revisión */}
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Enviar revisión de tarjeta a
-                      </label>
-                      
-                      {/* Usuarios seleccionados */}
-                      {selectedReviewers.length > 0 && (
-                        <div className="mb-3 flex flex-wrap gap-2">
-                          {selectedReviewers.map(userId => {
-                            const user = slackUsers.find(u => u.id === userId);
-                            return (
-                              <span
-                                key={userId}
-                                className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                              >
-                                {user?.real_name || user?.name || userId}
-                                <button
-                                  onClick={() => removeSelectedUser(userId)}
-                                  className="ml-2 text-blue-600 hover:text-blue-800"
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Search input */}
-                      <div className="relative user-dropdown-container">
-                        <input
-                          type="text"
-                          value={userSearchTerm}
-                          onChange={(e) => handleUserSearchChange(e.target.value)}
-                          onFocus={() => setShowUserDropdown(true)}
-                          placeholder="Buscar usuarios de Slack... (escribe 2+ caracteres)"
-                          className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
-                        />
-                        
-                        {/* Botón para cargar usuarios - solo visible si no hay usuarios y término < 2 caracteres */}
-                        {slackUsers.length === 0 && userSearchTerm.length < 2 && (
-                          <button
-                            onClick={loadSlackUsers}
-                            disabled={isLoadingUsers}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                          >
-                            {isLoadingUsers ? 'Cargando...' : 'Cargar'}
-                          </button>
-                        )}
-
-                        {/* Indicador de carga automática */}
-                        {isLoadingUsers && userSearchTerm.length >= 2 && (
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
-
-                        {/* Dropdown de usuarios */}
-                        {showUserDropdown && userSearchTerm && filteredUsers.length > 0 && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                            {filteredUsers.map(user => (
-                              <div
-                                key={user.id}
-                                onClick={() => {
-                                  toggleUserSelection(user.id);
-                                  setUserSearchTerm('');
-                                  setShowUserDropdown(false);
-                                }}
-                                className={`px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0 ${
-                                  selectedReviewers.includes(user.id) ? 'bg-blue-50' : ''
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <div className="font-medium text-slate-900">
-                                      {user.real_name || user.name}
-                                    </div>
-                                    {user.email && (
-                                      <div className="text-sm text-slate-500">{user.email}</div>
-                                    )}
-                                  </div>
-                                  {selectedReviewers.includes(user.id) && (
-                                    <div className="text-blue-600">✓</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Comentario de revisión
-                      </label>
-                      <textarea
-                        value={reviewComment}
-                        onChange={(e) => setReviewComment(e.target.value)}
-                        placeholder="Agregar comentarios sobre la revisión..."
-                        rows={4}
-                        className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-500"
-                      />
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        onClick={handleSendReview}
-                        disabled={selectedReviewers.length === 0 || !reviewComment.trim() || isSendingReview}
-                        className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
-                      >
-                        {isSendingReview ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Send size={18} className="mr-2" />
-                            Enviar a {selectedReviewers.length} usuario(s)
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-=======
           {/* Action Buttons */}
           <div className="p-6 space-y-3">
             <button
@@ -782,7 +509,6 @@ export default function InitiativeEvaluationPage() {
               <CheckCircle size={16} className="mr-2" />
               Cerrar Evaluación
             </button>
->>>>>>> Stashed changes
           </div>
         </div>
       </main>
