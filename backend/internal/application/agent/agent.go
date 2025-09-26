@@ -649,77 +649,10 @@ IMPORTANTE:
 }
 
 func (a *AgentService) validateIntake(ctx context.Context, req IntakeRequest) (*IntakeResponse, error) {
-	systemPrompt := `Eres el Director de Producto Senior de Pomelo, líder en infraestructura de pagos de LATAM. Tu función es crear resúmenes ejecutivos estratégicos para el comité de priorización de iniciativas.
-
-## CONTEXTO EMPRESARIAL POMELO
-Pomelo es la infraestructura de pagos líder en LATAM con:
-- Presencia en Brasil, México, Argentina, Colombia, Chile
-- Clientes: desde startups fintech hasta bancos Tier 1
-- Stack completo: procesamiento, emisión, core banking, BIN sponsorship
-- Volúmenes: $10B+ anuales procesados
-- Foco en innovación y compliance regulatoria
-
-## TU ROL COMO DIRECTOR DE PRODUCTO
-Generas resúmenes ejecutivos que el C-Level y board usan para:
-- Tomar decisiones de inversión y priorización
-- Asignar recursos de engineering ($2M+ por iniciativa)
-- Evaluar impacto competitivo y market timing
-- Alinear roadmap con objetivos estratégicos
-
-## FORMATO DE RESUMEN EJECUTIVO
-Crea un resumen profesional que incluya:
-
-**🎯 OPORTUNIDAD ESTRATÉGICA**
-- Problema específico del ecosistema fintech LATAM
-- Gap competitivo vs players como Stone, PagSeguro, Mercado Pago
-- Market size y revenue opportunity potencial
-
-**💰 JUSTIFICACIÓN DE NEGOCIO**
-- ROI proyectado y timeline de recuperación
-- Impacto en métricas clave (TPV, take rate, NPS, churn)
-- Requisitos de inversión estimados (engineering, compliance, ops)
-
-**🎯 ALCANCE Y COMPLEJIDAD**
-- Verticales técnicos involucrados (core, processing, fraud, etc.)
-- Países/regulaciones afectadas (BCB, CNBV, etc.)
-- Tipo de clientes beneficiados (tier 1, startups, etc.)
-
-**⚡ URGENCIA Y RIESGOS**
-- Timeline crítico (deadlines regulatorios, launches competidores)
-- Riesgos técnicos, de compliance o de mercado
-- Dependencias con otros equipos/iniciativas
-
-## EJEMPLOS DE TERMINOLOGÍA FINTECH
-- TPV (Total Payment Volume), take rate, interchange
-- Acquiring, issuing, tokenization, 3DS authentication
-- PCI compliance, fraud scoring, risk management
-- Open banking, PIX, instant payments, BNPL
-- Card-on-file, recurring billing, marketplace facilitation
-
-Redacta en español con terminología técnica precisa y enfoque en business impact cuantificable. El resumen debe mostrar por qué esta iniciativa merece recursos vs otras 50+ en el backlog.`
-
-	// Prepare all collected information
-	contextInfo := fmt.Sprintf("Input del usuario: %s", req.UserInput)
-	if req.Initiative != nil {
-		initiativeJSON, _ := json.Marshal(req.Initiative)
-		contextInfo += fmt.Sprintf("\nInformación de la iniciativa: %s", string(initiativeJSON))
-	}
-	if req.Context != nil {
-		contextJSON, _ := json.Marshal(req.Context)
-		contextInfo += fmt.Sprintf("\nContexto adicional: %s", string(contextJSON))
-	}
-
-	summary, err := a.callOpenAI(ctx, systemPrompt, contextInfo)
-	if err != nil {
-		fmt.Printf("Error llamando LLM para generar resumen ejecutivo: %v\n", err)
-		return nil, fmt.Errorf("failed to generate executive summary: %w", err)
-	}
-
-	return &IntakeResponse{
-		ExecutiveSummary: summary,
-		NextStep:         "complete",
-		IsComplete:       true,
-	}, nil
+	// Para el botón "Testear Iniciativa", usar el mismo prompt de generateConfirmationSummary
+	fmt.Printf("DEBUG: validateIntake called with step: %s\n", req.Step)
+	fmt.Printf("DEBUG: validateIntake calling generateConfirmationSummary\n")
+	return a.generateConfirmationSummary(ctx, req)
 }
 
 // Estimation intervention implementation

@@ -58,10 +58,14 @@ export default function IntakeChat() {
 
   const initializeChat = async () => {
     try {
+      console.log('Inicializando chat...');
       setIsLoading(true);
       const response = await agentService.startIntake('Quiero crear una nueva iniciativa');
-      
+
+      console.log('Respuesta del backend:', response);
+
       if (response.questions && response.questions.length > 0) {
+        console.log('Pregunta recibida:', response.questions[0].text);
         const botMessage: Message = {
           id: Date.now().toString(),
           type: 'bot',
@@ -70,6 +74,16 @@ export default function IntakeChat() {
           timestamp: new Date()
         };
         setMessages([botMessage]);
+      } else {
+        console.warn('No se recibieron preguntas del backend');
+        const fallbackMessage: Message = {
+          id: '1',
+          type: 'bot',
+          content: "¡Hola! Vamos a crear una nueva iniciativa. ¿Qué problema específico querés resolver?",
+          section: 'context',
+          timestamp: new Date()
+        };
+        setMessages([fallbackMessage]);
       }
     } catch (error) {
       console.error('Error initializing chat:', error);
@@ -175,6 +189,66 @@ export default function IntakeChat() {
     }
   };
 
+  const handleTestInitiative = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Collect all conversation content
+      const conversationContent = messages
+        .filter(msg => msg.type === 'user')
+        .map(msg => msg.content)
+        .join(' ');
+      
+      // Create a test message with the conversation content
+      const testMessage = `TESTEAR INICIATIVA - Contenido de la conversación: ${conversationContent}`;
+      
+      // Add the test message to chat
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: testMessage,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, newMessage]);
+      
+      // Send to agent to generate summary using validateIntake which triggers generateConfirmationSummary
+      const response = await agentService.validateIntake(testMessage, formData, {
+        conversation_history: messages
+          .filter(msg => msg.type === 'user')
+          .map(msg => ({ user: msg.content, timestamp: msg.timestamp }))
+      });
+      
+      if (response && response.confirmation_summary) {
+        // Add the summary as a bot message
+        const summaryMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'bot',
+          content: response.confirmation_summary,
+          section: 'summary',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, summaryMessage]);
+        setExecutiveSummary(response.confirmation_summary);
+      }
+      
+    } catch (error) {
+      console.error('Error testing initiative:', error);
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        type: 'bot',
+        content: `Error al generar el resumen: ${error}`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCompleteInitiative = async () => {
     if (!isComplete) return;
@@ -242,28 +316,44 @@ export default function IntakeChat() {
           </div>
         )}
         
-        {/* Complete Button */}
-        {isComplete && (
-          <div className="mt-4">
-            <button
-              onClick={handleCompleteInitiative}
-              disabled={isLoading}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                  Creando...
-                </>
-              ) : (
-                <>
-                  <Check size={16} className="mr-2" />
-                  Crear Iniciativa
-                </>
-              )}
-            </button>
-          </div>
-        )}
+        {/* Test and Complete Buttons */}
+        <div className="mt-4 space-y-2">
+          <button
+            onClick={handleTestInitiative}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <Plus size={16} className="mr-2" />
+                Testear Iniciativa
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={handleCompleteInitiative}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" />
+                Creando...
+              </>
+            ) : (
+              <>
+                <Check size={16} className="mr-2" />
+                Crear Iniciativa
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Chat area */}
