@@ -1,20 +1,26 @@
 package handlers
 
 import (
-	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"pomelo-wishlist/internal/application/scoring"
+	"pomelo-wishlist/internal/domain"
 )
 
 type KanbanMoveHandler struct {
-	db *gorm.DB
+	db             *gorm.DB
+	scoringService *scoring.ScoringService
 }
 
 func NewKanbanMoveHandler(db *gorm.DB) *KanbanMoveHandler {
-	return &KanbanMoveHandler{db: db}
+	return &KanbanMoveHandler{
+		db:             db,
+		scoringService: scoring.NewScoringService(),
+	}
 }
 
 type KanbanMoveRequest struct {
@@ -81,14 +87,9 @@ func (h *KanbanMoveHandler) MoveInitiative(c *gin.Context) {
 		return
 	}
 
-	// Check if initiative exists
-	var initiative struct {
-		ID     string `json:"id"`
-		Status string `json:"status"`
-		Score  int    `json:"score"`
-	}
-
-	if err := h.db.Table("initiatives").Select("id, status, score").Where("id = ?", initiativeID).First(&initiative).Error; err != nil {
+	// Check if initiative exists and get full data for scoring
+	var initiative domain.Initiative
+	if err := h.db.Where("id = ?", initiativeID).First(&initiative).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Initiative not found"})
 			return
@@ -105,21 +106,24 @@ func (h *KanbanMoveHandler) MoveInitiative(c *gin.Context) {
 
 	// Check if we need to calculate score
 	shouldCalculateScore := false
-	if (initiative.Status == "Backlog" && request.NewStatus == "Iniciativas cargadas a revisar") ||
-		(initiative.Status == "Iniciativas cargadas a revisar" && request.NewStatus == "Iniciativas a estimar") {
+	if (initiative.Status == domain.StatusBacklog && request.NewStatus == "Iniciativas cargadas a revisar") ||
+		(initiative.Status == domain.StatusIniciativasCargadasRevisar && request.NewStatus == "Iniciativas a estimar") {
 		shouldCalculateScore = true
 	}
 
-	// Calculate mock score if needed
+	// Calculate real score if needed
 	if shouldCalculateScore {
-		// Generate random score between 80-100
-		rand.Seed(time.Now().UnixNano())
-		mockScore := 80 + rand.Intn(21) // 80-100
-		updates["score"] = mockScore
+		// Use the real scoring system
+		scoreBreakdown, err := h.scoringService.CalculateScore(initiative)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate score"})
+			return
+		}
+		updates["score"] = scoreBreakdown.TotalScore
 	}
 
 	// Update the initiative
-	if err := h.db.Table("initiatives").Where("id = ?", initiativeID).Updates(updates).Error; err != nil {
+	if err := h.db.Model(&initiative).Where("id = ?", initiativeID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update initiative"})
 		return
 	}

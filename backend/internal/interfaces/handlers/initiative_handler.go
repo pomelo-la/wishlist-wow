@@ -274,7 +274,7 @@ func (h *InitiativeHandler) CalculateScore(c *gin.Context) {
 	}
 
 	// Calculate score using scoring service
-	scoreBreakdown, err := h.scoringService.CalculateScore(&initiative)
+	scoreBreakdown, err := h.scoringService.CalculateScore(initiative)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate score"})
 		return

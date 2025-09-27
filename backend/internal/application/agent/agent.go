@@ -907,7 +907,7 @@ Responde en español de forma profesional y estructurada.`
 
 // Scoring intervention implementation
 func (a *AgentService) ScoringIntervention(ctx context.Context, req ScoringRequest) (*ScoringResponse, error) {
-	scoreBreakdown, err := a.scoringService.CalculateScore(req.Initiative)
+	scoreBreakdown, err := a.scoringService.CalculateScore(*req.Initiative)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate score: %w", err)
 	}
@@ -1079,5 +1079,5 @@ func (a *AgentService) getMockIntakeResponse(step string) *IntakeResponse {
 
 // ScoringService interface
 type ScoringService interface {
-	CalculateScore(initiative *domain.Initiative) (*domain.ScoreBreakdown, error)
+	CalculateScore(initiative domain.Initiative) (*domain.ScoreBreakdown, error)
 }
