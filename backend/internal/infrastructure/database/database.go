@@ -14,10 +14,10 @@ import (
 func Initialize() (*gorm.DB, error) {
 	// Get database configuration from environment
 	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "postgres")
-	dbname := getEnv("DB_NAME", "pomelo_wishlist")
+	port := getEnv("DB_PORT", "5433")
+	user := getEnv("DB_USER", "wishlist")
+	password := getEnv("DB_PASSWORD", "wishlist")
+	dbname := getEnv("DB_NAME", "wishlist")
 	sslmode := getEnv("DB_SSLMODE", "disable")
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",

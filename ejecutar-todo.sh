@@ -112,6 +112,9 @@ DB_USER=wishlist
 DB_PASSWORD=wishlist
 DB_NAME=wishlist
 DB_SSLMODE=disable
+
+# Slack Configuration
+SLACK_WOW_TOKEN=your_slack_token_here
 EOF
     print_success "Backend config.env created!"
 else
@@ -319,78 +322,112 @@ CREATE INDEX IF NOT EXISTS idx_suggestions_initiative ON suggestions(initiative_
 CREATE INDEX IF NOT EXISTS idx_audit_logs_initiative ON audit_logs(initiative_id);
 CREATE INDEX IF NOT EXISTS idx_kanban_activities_initiative ON kanban_activities(initiative_id);
 
--- Add constraints for new Kanban fields
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_category_new CHECK (category_new IN (
-    'Mandates / Regulatorio / Riesgo',
-    'Mejora de performance',
-    'Value Prop',
-    'Lanzamiento nuevo producto'
-));
+-- Add new Kanban columns if they don't exist
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS category_new VARCHAR(100);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS vertical_new VARCHAR(100);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS client_type_new VARCHAR(50);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS country_new VARCHAR(50);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS systemic_risk_new VARCHAR(50);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS economic_impact_new VARCHAR(200);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS economic_impact_description TEXT;
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS experience_impact_new TEXT[];
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS competitive_approach VARCHAR(100);
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS executive_summary TEXT;
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS roi INTEGER DEFAULT 0;
+ALTER TABLE initiatives ADD COLUMN IF NOT EXISTS created_by VARCHAR(255);
 
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_vertical_new CHECK (vertical_new IN (
-    'Processing',
-    'Core',
-    'BIN Sponsor',
-    'Card Management & Logistics',
-    'Tokenización',
-    'Fraud Tools',
-    'Platform experience'
-));
-
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_client_type_new CHECK (client_type_new IN (
-    'Todos',
-    'Top Issuer',
-    'Tier 1',
-    'Tier 2',
-    'Tier 3'
-));
-
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_country_new CHECK (country_new IN (
-    'Todos',
-    'Argentina',
-    'Brasil',
-    'Chile',
-    'Colombia',
-    'Mexico',
-    'ROLA'
-));
-
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_systemic_risk_new CHECK (systemic_risk_new IN (
-    'Bloqueante',
-    'Alto',
-    'Medio',
-    'Bajo',
-    'N/A'
-));
-
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_economic_impact_new CHECK (economic_impact_new IN (
-    'Aumento significativo en revenue o nueva linea revenue',
-    'Aumento moderado en revenue existente',
-    'Impacto menor o dificil de cuantificar'
-));
-
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_competitive_approach CHECK (competitive_approach IN (
-    'Disrrustivo / Innovador',
-    'Mejora incremental',
-    'Paridad con competencia'
-));
-
--- Add constraints for numeric fields
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_score_range CHECK (score >= 0 AND score <= 100);
-
-ALTER TABLE initiatives 
-ADD CONSTRAINT IF NOT EXISTS chk_roi_positive CHECK (roi >= 0);
+-- Add constraints for new Kanban fields (only if they don't exist)
+DO \$\$
+BEGIN
+    -- Category constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_category_new') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_category_new CHECK (category_new IN (
+            'Mandates / Regulatorio / Riesgo',
+            'Mejora de performance',
+            'Value Prop',
+            'Lanzamiento nuevo producto'
+        ));
+    END IF;
+    
+    -- Vertical constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_vertical_new') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_vertical_new CHECK (vertical_new IN (
+            'Processing',
+            'Core',
+            'BIN Sponsor',
+            'Card Management & Logistics',
+            'Tokenización',
+            'Fraud Tools',
+            'Platform experience'
+        ));
+    END IF;
+    
+    -- Client type constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_client_type_new') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_client_type_new CHECK (client_type_new IN (
+            'Todos',
+            'Top Issuer',
+            'Tier 1',
+            'Tier 2',
+            'Tier 3'
+        ));
+    END IF;
+    
+    -- Country constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_country_new') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_country_new CHECK (country_new IN (
+            'Todos',
+            'Argentina',
+            'Brasil',
+            'Chile',
+            'Colombia',
+            'Mexico',
+            'ROLA'
+        ));
+    END IF;
+    
+    -- Systemic risk constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_systemic_risk_new') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_systemic_risk_new CHECK (systemic_risk_new IN (
+            'Bloqueante',
+            'Alto',
+            'Medio',
+            'Bajo',
+            'N/A'
+        ));
+    END IF;
+    
+    -- Economic impact constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_economic_impact_new') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_economic_impact_new CHECK (economic_impact_new IN (
+            'Aumento significativo en revenue o nueva linea revenue',
+            'Aumento moderado en revenue existente',
+            'Impacto menor o dificil de cuantificar'
+        ));
+    END IF;
+    
+    -- Competitive approach constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_competitive_approach') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_competitive_approach CHECK (competitive_approach IN (
+            'Disrrustivo / Innovador',
+            'Mejora incremental',
+            'Paridad con competencia'
+        ));
+    END IF;
+    
+    -- Score range constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_score_range') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_score_range CHECK (score >= 0 AND score <= 1000);
+    END IF;
+    
+    -- ROI positive constraint
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_roi_positive') THEN
+        ALTER TABLE initiatives ADD CONSTRAINT chk_roi_positive CHECK (roi >= 0);
+    END IF;
+END \$\$;
 "
 
-if [ \$? -eq 0 ]; then
+if [ $? -eq 0 ]; then
     print_success "Database schema created successfully!"
 else
     print_error "Failed to create database schema"

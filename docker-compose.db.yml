@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: wishlist-postgres
     environment:
-      - POSTGRES_DB=pomelo_wishlist
+      - POSTGRES_DB=wishlist
       - POSTGRES_USER=wishlist
       - POSTGRES_PASSWORD=wishlist
     ports:
@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wishlist -d pomelo_wishlist"]
+      test: ["CMD-SHELL", "pg_isready -U wishlist -d wishlist"]
       interval: 10s
       timeout: 5s
       retries: 5
