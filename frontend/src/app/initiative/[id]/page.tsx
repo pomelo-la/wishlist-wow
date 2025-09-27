@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { mockInitiatives } from '@/data/mockData';
 import { Initiative } from '@/types/initiative';
 import Header from '@/components/layout/Header';
+import InitiativeActivityLog from '@/components/activity/InitiativeActivityLog';
 import { 
   ArrowLeft, 
   MessageSquare, 
@@ -23,8 +24,9 @@ import {
   BarChart2,
   FileText,
   Percent,
-  ClipboardCheck,
-  ChevronRight
+  ChevronRight,
+  Plus,
+  X
 } from 'lucide-react';
 
 interface ReviewMessage {
@@ -54,16 +56,61 @@ export default function InitiativeEvaluationPage() {
     unreachedCases: ''
   });
 
-  const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
-  const [reviewComment, setReviewComment] = useState('');
-  const [isSendingReview, setIsSendingReview] = useState(false);
-  const [slackUsers, setSlackUsers] = useState<any[]>([]);
-  const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [initiativeData, setInitiativeData] = useState({
+    category: 'Mandates / Regulatorio / Riesgo',
+    vertical: 'Processing',
+    clientType: 'Todos',
+    country: 'Brasil',
+    systemicRisk: 'Alto',
+    economicImpact: 'Aumento significativo en revenue o nueva linea revenue',
+    economicImpactDescription: 'Esta iniciativa generará un nuevo flujo de ingresos estimado en $2M anuales a través de la implementación de nuevas funcionalidades regulatorias.',
+    experienceImpact: ['Contact Rate', 'Aprobación', 'SLA de incidencias'],
+    competitiveApproach: 'Disrrustivo / Innovador',
+    executiveSummary: 'Esta iniciativa busca implementar nuevas funcionalidades regulatorias que nos permitirán cumplir con las normativas brasileñas más recientes, generando un nuevo flujo de ingresos significativo mientras mejoramos la experiencia del cliente.',
+    roi: 340
+  });
+
+  const [prodItData, setProdItData] = useState({
+    // Tecnología
+    techSeeds: 15,
+    techCertainty: 75,
+    techNotes: 'Implementación de nuevas APIs para integración con sistemas regulatorios brasileños. Se requiere migración de datos existentes y validación de compatibilidad.',
+    
+    // UX
+    uxSeeds: 8,
+    uxCertainty: 85,
+    uxCases: 'Rediseño de formularios de onboarding para cumplir con normativas KYC. Implementación de flujos de verificación adicionales para usuarios brasileños.',
+    
+    // Producto
+    productCases: 'Nuevas funcionalidades de reporte automático para autoridades regulatorias. Dashboard de monitoreo en tiempo real de transacciones.',
+    productProviders: 'Integración con ProveedorRegulatorioBR, ConsultoraCompliance, y ServiciosKYC. Contratos ya firmados con 2 de 3 proveedores.',
+    productNotConsidered: 'No se contempla integración con sistemas legacy de bancos pequeños. Solo se soportará la normativa vigente, no futuras actualizaciones.',
+    productCertainty: 70
+  });
+
+  // Estados para dependencias
+  const [dependencies, setDependencies] = useState<Array<{
+    id: string;
+    area: string;
+    description: string;
+    sent?: boolean;
+  }>>([]);
+  const [currentAreaSearch, setCurrentAreaSearch] = useState('');
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+  const [currentDependencyId, setCurrentDependencyId] = useState<string | null>(null);
+
+  // Lista de áreas disponibles
+  const availableAreas = [
+    'Cards Hub', 'Payment Processor', 'Risk', 'Lending', 'Accounts', 'Experience', 
+    'Dashboard', 'Frontend', 'Data', 'Infra & Security', 'TechOps', 'Platform', 
+    'Development', 'Developer Experience', 'Artificial Intelligence', 'Product', 
+    'Operations', 'Customer Success', 'Finance', 'Legal', 'Marketing', 'People', 
+    'Printing & Logistics', 'Customer Support', 'Commercial'
+  ];
 
   // Cargar datos inmediatamente sin spinner
-  const foundInitiative = mockInitiatives.find(i => i.id === params.id);
+      const foundInitiative = mockInitiatives.find(i => i.id === params.id);
   if (!initiative && foundInitiative) {
     setInitiative(foundInitiative);
     
@@ -88,43 +135,6 @@ export default function InitiativeEvaluationPage() {
     ]);
   }
 
-  // Función para cargar usuarios de Slack
-  const loadSlackUsers = async () => {
-    setIsLoadingUsers(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/slack/users');
-      const data = await response.json();
-      if (data.success) {
-        setSlackUsers(data.users || []);
-      } else {
-        console.error('Error loading Slack users:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching Slack users:', error);
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  // Función para manejar cambios en el input de búsqueda
-  const handleUserSearchChange = (value: string) => {
-    setUserSearchTerm(value);
-    
-    // Si no hay usuarios cargados y el término tiene al menos 2 caracteres, cargar usuarios
-    if (slackUsers.length === 0 && value.length >= 2) {
-      loadSlackUsers();
-    }
-    
-    // Mostrar dropdown si hay término de búsqueda
-    setShowUserDropdown(value.length > 0);
-  };
-
-  // Filtrar usuarios basado en el término de búsqueda
-  const filteredUsers = slackUsers.filter(user => 
-    user.real_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-    user.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(userSearchTerm.toLowerCase())
-  );
 
   const handleSendMessage = () => {
     if (!currentMessage.trim()) return;
@@ -143,68 +153,6 @@ export default function InitiativeEvaluationPage() {
     setSelectedTags([]);
   };
 
-  const handleSendReview = async () => {
-    if (selectedReviewers.length === 0 || !reviewComment.trim() || isSendingReview) return;
-
-    setIsSendingReview(true);
-
-    try {
-      // Crear el mensaje para Slack
-      const message = `🔍 *Nueva revisión de tarjeta*\n\n` +
-        `*Iniciativa:* ${initiative?.title}\n` +
-        `*Estado:* ${initiative?.status.replace('-', ' ')}\n` +
-        `*Categoría:* ${initiative?.category.replace('-', ' ')}\n` +
-        `*País:* ${initiative?.country}\n\n` +
-        `*Comentario:*\n${reviewComment}`;
-
-      // Enviar mensaje a cada usuario seleccionado
-      const promises = selectedReviewers.map(async (userId) => {
-        const response = await fetch('http://localhost:8080/api/slack/send-message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            channel: userId,
-            text: message
-          })
-        });
-        return response;
-      });
-
-      const responses = await Promise.all(promises);
-      const successful = responses.filter(r => r.ok).length;
-      
-      if (successful === selectedReviewers.length) {
-        alert(`✅ Revisión enviada exitosamente a ${successful} usuario(s)`);
-        // Limpiar formulario
-        setSelectedReviewers([]);
-        setReviewComment('');
-        setUserSearchTerm('');
-      } else {
-        alert(`⚠️ Revisión enviada a ${successful} de ${selectedReviewers.length} usuarios`);
-      }
-    } catch (error) {
-      console.error('Error enviando mensaje:', error);
-      alert('❌ Error al enviar la revisión. Intenta nuevamente.');
-    } finally {
-      setIsSendingReview(false);
-    }
-  };
-
-  // Función para agregar/quitar usuarios seleccionados
-  const toggleUserSelection = (userId: string) => {
-    setSelectedReviewers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
-  };
-
-  // Función para remover usuario seleccionado
-  const removeSelectedUser = (userId: string) => {
-    setSelectedReviewers(prev => prev.filter(id => id !== userId));
-  };
 
   const handleSaveDraft = () => {
     console.log('Saving draft...', structuredFields);
@@ -221,6 +169,61 @@ export default function InitiativeEvaluationPage() {
     }
   };
 
+  // Funciones para manejar dependencias
+  const filteredAreas = availableAreas.filter(area =>
+    area.toLowerCase().includes(currentAreaSearch.toLowerCase())
+  );
+
+  const handleAreaSearchChange = (value: string) => {
+    setCurrentAreaSearch(value);
+    setShowAreaDropdown(value.length > 0);
+  };
+
+  const handleAreaSelect = (area: string, dependencyId: string) => {
+    setDependencies(prev => prev.map(dep => 
+      dep.id === dependencyId ? { ...dep, area } : dep
+    ));
+    setCurrentAreaSearch('');
+    setShowAreaDropdown(false);
+    setCurrentDependencyId(null);
+  };
+
+  const handleDescriptionChange = (dependencyId: string, description: string) => {
+    setDependencies(prev => prev.map(dep => 
+      dep.id === dependencyId ? { ...dep, description } : dep
+    ));
+  };
+
+  const addNewDependency = () => {
+    const newId = Date.now().toString();
+    setDependencies(prev => [...prev, {
+      id: newId,
+      area: '',
+      description: ''
+    }]);
+    setCurrentDependencyId(newId);
+    setCurrentAreaSearch('');
+    setShowAreaDropdown(true);
+  };
+
+  const removeDependency = (dependencyId: string) => {
+    setDependencies(prev => prev.filter(dep => dep.id !== dependencyId));
+  };
+
+  const sendDependency = (dependencyId: string) => {
+    const dependency = dependencies.find(dep => dep.id === dependencyId);
+    if (dependency && dependency.area && dependency.description) {
+      console.log('Enviando dependencia:', dependency);
+      // Aquí se enviaría la dependencia al backend
+      alert(`Dependencia enviada: ${dependency.area} - ${dependency.description}`);
+      
+      // Marcar como enviada (agregar flag)
+      setDependencies(prev => prev.map(dep => 
+        dep.id === dependencyId ? { ...dep, sent: true } : dep
+      ));
+    }
+  };
+
   const getRoleColor = (role: string) => {
     const colors = {
       business: 'bg-emerald-500',
@@ -229,6 +232,92 @@ export default function InitiativeEvaluationPage() {
       ux: 'bg-pink-500'
     };
     return colors[role as keyof typeof colors] || 'bg-gray-500';
+  };
+
+  // Funciones para mostrar datos de manera creativa
+  const getCountryFlag = (country: string) => {
+    const flags: { [key: string]: string } = {
+      'Argentina': '🇦🇷',
+      'Brasil': '🇧🇷',
+      'Chile': '🇨🇱',
+      'Colombia': '🇨🇴',
+      'Mexico': '🇲🇽',
+      'ROLA': '🌎',
+      'Todos': '🌍'
+    };
+    return flags[country] || '🌍';
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: { [key: string]: string } = {
+      'Mandates / Regulatorio / Riesgo': '⚖️',
+      'Mejora de performance': '⚡',
+      'Value Prop': '💎',
+      'Lanzamiento nuevo producto': '🚀'
+    };
+    return icons[category] || '📋';
+  };
+
+  const getVerticalIcon = (vertical: string) => {
+    const icons: { [key: string]: string } = {
+      'Processing': '⚙️',
+      'Core': '🔧',
+      'BIN Sponsor': '🏦',
+      'Card Management & Logistics': '💳',
+      'Tokenización': '🔐',
+      'Fraud Tools': '🛡️',
+      'Platform experience': '🎯'
+    };
+    return icons[vertical] || '📊';
+  };
+
+  const getRiskColor = (risk: string) => {
+    const colors: { [key: string]: string } = {
+      'Bloqueante': 'bg-red-100 text-red-800 border-red-200',
+      'Alto': 'bg-orange-100 text-orange-800 border-orange-200',
+      'Medio': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'Bajo': 'bg-green-100 text-green-800 border-green-200',
+      'N/A': 'bg-gray-100 text-gray-800 border-gray-200'
+    };
+    return colors[risk] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const getEconomicImpactColor = (impact: string) => {
+    if (impact.includes('significativo')) return 'bg-green-100 text-green-800 border-green-200';
+    if (impact.includes('moderado')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const getCompetitiveApproachColor = (approach: string) => {
+    if (approach.includes('Disrrustivo')) return 'bg-purple-100 text-purple-800 border-purple-200';
+    if (approach.includes('incremental')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  // Funciones para áreas de Prod & IT
+  const getAreaIcon = (area: string) => {
+    const icons: { [key: string]: string } = {
+      'Tecnología': '⚙️',
+      'UX': '🎨',
+      'Producto': '📦'
+    };
+    return icons[area] || '📋';
+  };
+
+  const getAreaColor = (area: string) => {
+    const colors: { [key: string]: string } = {
+      'Tecnología': 'bg-blue-50 border border-blue-200',
+      'UX': 'bg-purple-50 border border-purple-200',
+      'Producto': 'bg-green-50 border border-green-200'
+    };
+    return colors[area] || 'bg-gray-50 border border-gray-200';
+  };
+
+  const getCertaintyColor = (certainty: number) => {
+    if (certainty >= 80) return 'bg-green-100 text-green-800 border-green-200';
+    if (certainty >= 60) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    if (certainty >= 40) return 'bg-orange-100 text-orange-800 border-orange-200';
+    return 'bg-red-100 text-red-800 border-red-200';
   };
 
   if (!initiative) {
@@ -265,48 +354,40 @@ export default function InitiativeEvaluationPage() {
       
       <main className="h-[calc(100vh-5rem)] flex bg-gray-50">
         {/* Main Chat Panel - 50% width */}
-        <div className="w-1/2 flex flex-col">
-          {/* Initiative Header */}
-          <div className="p-6">
-            <div className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
-              <button 
-                onClick={() => router.push('/?tab=kanban')}
-                className="flex items-center hover:text-gray-700 transition-colors"
-              >
-                <ArrowLeft size={16} className="mr-1" />
-                Kanban
-              </button>
-              <ChevronRight size={16} />
-              <span>Evaluación</span>
-            </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {initiative.title}
-            </h1>
-            
-            {/* Metadata */}
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center">
-                <User size={16} className="mr-2" />
-                {initiative.createdBy}
-              </div>
-              <div className="flex items-center">
-                <Calendar size={16} className="mr-2" />
-                {initiative.createdAt.toLocaleDateString()}
-              </div>
-              <div className="flex items-center">
-                <Target size={16} className="mr-2" />
-                {initiative.quarter}
-              </div>
-              <div className="flex items-center">
-                <Zap size={16} className="mr-2" />
-                Score: {initiative.score}
-              </div>
+        <div className="w-1/2 flex flex-col px-6 py-8">
+          {/* Initiative Header - Grid arriba del chat */}
+          <div className="mb-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                {initiative?.title || 'Cargando...'}
+              </h1>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <User size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">{initiative?.createdBy || 'Juan Pérez'}</span>
+        </div>
+
+                <div className="flex items-center space-x-2">
+                  <Calendar size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">{initiative?.createdAt ? new Date(initiative.createdAt).toLocaleDateString('es-ES') : '14/1/2024'}</span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Target size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">{initiative?.quarter || 'Q2'}</span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Zap size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">Score: {initiative?.score || 85}</span>
+                </div>
+                  </div>
             </div>
           </div>
 
           {/* Chat Messages Area - Integrated style */}
-          <div className="flex-1 mx-6 mb-6">
+          <div className="flex-1">
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {reviewMessages.length === 0 ? (
@@ -315,9 +396,9 @@ export default function InitiativeEvaluationPage() {
                       <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
                       <p>No hay mensajes aún. Inicia la conversación sobre esta iniciativa.</p>
                     </div>
-                  </div>
-                ) : (
-                  reviewMessages.map((message) => (
+                      </div>
+                    ) : (
+                      reviewMessages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.role === 'business' ? 'justify-end' : 'justify-start'}`}
@@ -341,51 +422,55 @@ export default function InitiativeEvaluationPage() {
                           <span className={`text-xs ${
                             message.role === 'business' ? 'text-blue-100' : 'text-gray-500'
                           }`}>
-                            {message.timestamp.toLocaleTimeString()}
-                          </span>
-                        </div>
+                                  {message.timestamp.toLocaleTimeString()}
+                                </span>
+                              </div>
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        {message.tags.length > 0 && (
+                              {message.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {message.tags.map((tag, index) => (
                               <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                                      {tag}
+                                    </span>
+                                  ))}
+                  </div>
                 )}
               </div>
+                        </div>
+                      ))
+                    )}
+            </div>
 
               {/* Chat Input - Integrated at bottom */}
               <div className="border-t border-gray-200 p-4">
                 <div className="flex space-x-4">
-                  <input
-                    type="text"
-                    value={currentMessage}
-                    onChange={(e) => setCurrentMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      <input
+                        type="text"
+                        value={currentMessage}
+                        onChange={(e) => setCurrentMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Escribí tu respuesta aquí..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!currentMessage.trim()}
+                      />
+              <button 
+                        onClick={handleSendMessage}
+                        disabled={!currentMessage.trim()}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                  >
-                    <Send size={18} />
-                  </button>
+          >
+                        <Send size={18} />
+              </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
             </div>
           </div>
-        </div>
 
         {/* Sidebar with Initiative Details - 50% width */}
-        <div className="w-1/2 bg-white flex flex-col">
+        <div className="w-1/2 flex flex-col px-6 py-8">
+          {/* Gran Card que contiene todo el sidebar */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full">
+          
+
           {/* Tabs - Using Header style */}
           <div className="p-4">
             <nav className="flex bg-gray-100 rounded-lg p-1">
@@ -393,285 +478,659 @@ export default function InitiativeEvaluationPage() {
                 { id: 'overview', label: 'Vista general', icon: Eye },
                 { id: 'prod-it', label: 'Prod & IT', icon: Settings },
                 { id: 'dependency', label: 'Dependencia', icon: FileText },
-                { id: 'activity', label: 'Activity', icon: Activity },
-                { id: 'review', label: 'Revisión', icon: ClipboardCheck }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                { id: 'activity', label: 'Activity', icon: Activity }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-xs font-medium transition-colors ${
-                    activeTab === tab.id
+                  activeTab === tab.id
                       ? 'bg-white text-blue-600 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
+                }`}
+              >
                   <tab.icon size={14} className="mr-1" />
-                  {tab.label}
-                </button>
-              ))}
+                {tab.label}
+              </button>
+            ))}
             </nav>
           </div>
 
+          {/* Botones fijos debajo de las solapas */}
+          <div className="px-4 pb-4">
+            <div className="flex space-x-3">
+              <button 
+                onClick={handleSaveDraft}
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Save size={16} className="mr-2" />
+                Guardar
+              </button>
+              <button 
+                onClick={handleCloseEvaluation}
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <CheckCircle size={16} className="mr-2" />
+                Cerrar Evaluación
+              </button>
+          </div>
+        </div>
+
           {/* Tab Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'overview' && (
+          {activeTab === 'overview' && (
               <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Estimación Tech
-                  </label>
-                  <input
-                    type="number"
-                    value={structuredFields.effortDays}
-                    onChange={(e) => setStructuredFields(prev => ({ ...prev, effortDays: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Días de esfuerzo"
-                  />
-                </div>
+                {/* Header con botón de edición */}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Datos Generales</h3>
+              <button
+                    onClick={() => setIsEditMode(!isEditMode)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isEditMode 
+                        ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                        : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    }`}
+                  >
+                    {isEditMode ? '✅ Guardar' : '✏️ Editar'}
+              </button>
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confianza %
-                  </label>
-                  <input
-                    type="number"
-                    value={structuredFields.confidence}
-                    onChange={(e) => setStructuredFields(prev => ({ ...prev, confidence: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Porcentaje de confianza"
-                    min="0"
-                    max="100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Casuísticas no alcanzadas
-                  </label>
-                  <textarea
-                    value={structuredFields.unreachedCases}
-                    onChange={(e) => setStructuredFields(prev => ({ ...prev, unreachedCases: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={4}
-                    placeholder="Describe las casuísticas que no se pueden alcanzar..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notas
-                  </label>
-                  <textarea
-                    value={structuredFields.notes}
-                    onChange={(e) => setStructuredFields(prev => ({ ...prev, notes: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={4}
-                    placeholder="Notas adicionales..."
-                  />
+                {/* Resumen Ejecutivo */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                    <BarChart2 size={20} className="mr-2 text-blue-600" />
+                    Resumen Ejecutivo
+                  </h4>
+                  {isEditMode ? (
+                    <textarea
+                      value={initiativeData.executiveSummary}
+                      onChange={(e) => setInitiativeData(prev => ({ ...prev, executiveSummary: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      rows={4}
+                      placeholder="Resumen ejecutivo de la iniciativa..."
+                    />
+                  ) : (
+                    <p className="text-gray-700 leading-relaxed">{initiativeData.executiveSummary}</p>
+                  )}
+                    </div>
+                    
+                {/* ROI */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <Percent size={20} className="mr-2 text-green-600" />
+                      ROI Estimado
+                    </h4>
+                    <div className="text-right">
+                      {isEditMode ? (
+                        <input
+                          type="number"
+                          value={initiativeData.roi}
+                          onChange={(e) => setInitiativeData(prev => ({ ...prev, roi: parseInt(e.target.value) || 0 }))}
+                          className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-right font-bold text-2xl"
+                        />
+                      ) : (
+                        <span className="text-3xl font-bold text-green-600">{initiativeData.roi}%</span>
+                      )}
+                  </div>
                 </div>
               </div>
-            )}
 
+                {/* Grid de datos generales */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Categoría */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <span className="text-lg mr-2">{getCategoryIcon(initiativeData.category)}</span>
+                      Categoría
+                    </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.category}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Mandates / Regulatorio / Riesgo">⚖️ Mandates / Regulatorio / Riesgo</option>
+                        <option value="Mejora de performance">⚡ Mejora de performance</option>
+                        <option value="Value Prop">💎 Value Prop</option>
+                        <option value="Lanzamiento nuevo producto">🚀 Lanzamiento nuevo producto</option>
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-2xl">{getCategoryIcon(initiativeData.category)}</span>
+                        <span className="text-gray-900 font-medium">{initiativeData.category}</span>
+                      </div>
+                    )}
+                    </div>
+                    
+                  {/* Vertical */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <span className="text-lg mr-2">{getVerticalIcon(initiativeData.vertical)}</span>
+                      Vertical
+                        </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.vertical}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, vertical: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Processing">⚙️ Processing</option>
+                        <option value="Core">🔧 Core</option>
+                        <option value="BIN Sponsor">🏦 BIN Sponsor</option>
+                        <option value="Card Management & Logistics">💳 Card Management & Logistics</option>
+                        <option value="Tokenización">🔐 Tokenización</option>
+                        <option value="Fraud Tools">🛡️ Fraud Tools</option>
+                        <option value="Platform experience">🎯 Platform experience</option>
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-2xl">{getVerticalIcon(initiativeData.vertical)}</span>
+                        <span className="text-gray-900 font-medium">{initiativeData.vertical}</span>
+                      </div>
+                    )}
+                      </div>
+
+                  {/* Tipo de Cliente */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <User size={20} className="inline mr-2" />
+                      Tipo de Cliente
+                      </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.clientType}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, clientType: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Todos">👥 Todos</option>
+                        <option value="Top Issuer">👑 Top Issuer</option>
+                        <option value="Tier 1">🥇 Tier 1</option>
+                        <option value="Tier 2">🥈 Tier 2</option>
+                        <option value="Tier 3">🥉 Tier 3</option>
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-2xl">
+                          {initiativeData.clientType === 'Todos' ? '👥' : 
+                           initiativeData.clientType === 'Top Issuer' ? '👑' :
+                           initiativeData.clientType === 'Tier 1' ? '🥇' :
+                           initiativeData.clientType === 'Tier 2' ? '🥈' : '🥉'}
+                        </span>
+                        <span className="text-gray-900 font-medium">{initiativeData.clientType}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* País */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <span className="text-lg mr-2">{getCountryFlag(initiativeData.country)}</span>
+                      País
+                      </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.country}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, country: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Todos">🌍 Todos</option>
+                        <option value="Argentina">🇦🇷 Argentina</option>
+                        <option value="Brasil">🇧🇷 Brasil</option>
+                        <option value="Chile">🇨🇱 Chile</option>
+                        <option value="Colombia">🇨🇴 Colombia</option>
+                        <option value="Mexico">🇲🇽 Mexico</option>
+                        <option value="ROLA">🌎 ROLA</option>
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-2xl">{getCountryFlag(initiativeData.country)}</span>
+                        <span className="text-gray-900 font-medium">{initiativeData.country}</span>
+                </div>
+                    )}
+                      </div>
+
+                  {/* Riesgo Sistémico */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <AlertCircle size={20} className="inline mr-2" />
+                      Riesgo Sistémico
+                      </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.systemicRisk}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, systemicRisk: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Bloqueante">🔴 Bloqueante</option>
+                        <option value="Alto">🟠 Alto</option>
+                        <option value="Medio">🟡 Medio</option>
+                        <option value="Bajo">🟢 Bajo</option>
+                        <option value="N/A">⚪ N/A</option>
+                      </select>
+                    ) : (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getRiskColor(initiativeData.systemicRisk)}`}>
+                        {initiativeData.systemicRisk === 'Bloqueante' ? '🔴' :
+                         initiativeData.systemicRisk === 'Alto' ? '🟠' :
+                         initiativeData.systemicRisk === 'Medio' ? '🟡' :
+                         initiativeData.systemicRisk === 'Bajo' ? '🟢' : '⚪'} {initiativeData.systemicRisk}
+                                </span>
+                    )}
+                              </div>
+
+                  {/* Impacto Económico */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <Target size={20} className="inline mr-2" />
+                      Impacto Económico
+                      </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.economicImpact}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, economicImpact: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Aumento significativo en revenue o nueva linea revenue">💰 Aumento significativo en revenue o nueva linea revenue</option>
+                        <option value="Aumento moderado en revenue existente">📈 Aumento moderado en revenue existente</option>
+                        <option value="Impacto menor o dificil de cuantificar">📊 Impacto menor o dificil de cuantificar</option>
+                      </select>
+                    ) : (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getEconomicImpactColor(initiativeData.economicImpact)}`}>
+                        {initiativeData.economicImpact.includes('significativo') ? '💰' :
+                         initiativeData.economicImpact.includes('moderado') ? '📈' : '📊'} {initiativeData.economicImpact}
+                                    </span>
+                    )}
+                                </div>
+
+                  {/* Enfoque Competitivo */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <Zap size={20} className="inline mr-2" />
+                      Enfoque Competitivo
+                    </label>
+                    {isEditMode ? (
+                      <select
+                        value={initiativeData.competitiveApproach}
+                        onChange={(e) => setInitiativeData(prev => ({ ...prev, competitiveApproach: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Disrrustivo / Innovador">🚀 Disrrustivo / Innovador</option>
+                        <option value="Mejora incremental">📈 Mejora incremental</option>
+                        <option value="Paridad con competencia">⚖️ Paridad con competencia</option>
+                      </select>
+                    ) : (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getCompetitiveApproachColor(initiativeData.competitiveApproach)}`}>
+                        {initiativeData.competitiveApproach.includes('Disrrustivo') ? '🚀' :
+                         initiativeData.competitiveApproach.includes('incremental') ? '📈' : '⚖️'} {initiativeData.competitiveApproach}
+                      </span>
+                              )}
+                            </div>
+                          </div>
+
+                {/* Impacto Económico - Descripción */}
+                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    <FileText size={20} className="inline mr-2" />
+                    Descripción del Impacto Económico
+                  </label>
+                  {isEditMode ? (
+                    <textarea
+                      value={initiativeData.economicImpactDescription}
+                      onChange={(e) => setInitiativeData(prev => ({ ...prev, economicImpactDescription: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      rows={3}
+                      placeholder="Describe el impacto económico de la iniciativa..."
+                    />
+                  ) : (
+                    <p className="text-gray-700 leading-relaxed">{initiativeData.economicImpactDescription}</p>
+                    )}
+                  </div>
+
+                {/* Impacto en Experiencia */}
+                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    <Activity size={20} className="inline mr-2" />
+                    Impacto en Experiencia
+                  </label>
+                  {isEditMode ? (
+                    <div className="space-y-2">
+                      {['Contact Rate', 'Aprobación', 'Aceptación', 'Provisioning Rate', 'SLA de envíos', 'SLA de incidencias', 'BPS (Chargebacks)', 'Revisión Manual KYC'].map((item) => (
+                        <label key={item} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={initiativeData.experienceImpact.includes(item)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setInitiativeData(prev => ({
+                                  ...prev,
+                                  experienceImpact: [...prev.experienceImpact, item]
+                                }));
+                            } else {
+                                setInitiativeData(prev => ({
+                                  ...prev,
+                                  experienceImpact: prev.experienceImpact.filter(impact => impact !== item)
+                                }));
+                              }
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {initiativeData.experienceImpact.map((impact, index) => (
+                        <span key={index} className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                          {impact}
+                        </span>
+                      ))}
+                    </div>
+                    )}
+                  </div>
+                </div>
+                    )}
+                    
             {activeTab === 'prod-it' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Producto & IT</h3>
-                <p className="text-gray-600">Información técnica y de producto...</p>
+                {/* Tecnología */}
+                <div className={`${getAreaColor('Tecnología')} rounded-xl p-4`}>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                    <span className="text-xl mr-2">{getAreaIcon('Tecnología')}</span>
+                    Tecnología
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Semillas */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Semillas (días)
+                      </label>
+                      <input
+                        type="number"
+                        value={prodItData.techSeeds}
+                        onChange={(e) => setProdItData(prev => ({ ...prev, techSeeds: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Días de semillas"
+                        min="0"
+                      />
+                    </div>
+
+                    {/* Certidumbre */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Certidumbre (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={prodItData.techCertainty}
+                        onChange={(e) => setProdItData(prev => ({ ...prev, techCertainty: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Porcentaje de certidumbre"
+                        min="0"
+                        max="100"
+                      />
+                  </div>
+                </div>
+
+                  {/* Notas / Casuísticas */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Notas / Casuísticas
+                    </label>
+                    <textarea
+                      value={prodItData.techNotes}
+                      onChange={(e) => setProdItData(prev => ({ ...prev, techNotes: e.target.value }))}
+                      className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                      placeholder="Notas técnicas y casuísticas..."
+                    />
               </div>
+                </div>
+
+                {/* UX */}
+                <div className={`${getAreaColor('UX')} rounded-xl p-4`}>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                    <span className="text-xl mr-2">{getAreaIcon('UX')}</span>
+                    UX
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Semillas */}
+                      <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Semillas (días)
+                        </label>
+                        <input
+                          type="number"
+                        value={prodItData.uxSeeds}
+                        onChange={(e) => setProdItData(prev => ({ ...prev, uxSeeds: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Días de semillas"
+                        min="0"
+                        />
+                      </div>
+
+                    {/* Certidumbre */}
+                      <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Certidumbre (%)
+                        </label>
+                        <input
+                          type="number"
+                        value={prodItData.uxCertainty}
+                        onChange={(e) => setProdItData(prev => ({ ...prev, uxCertainty: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Porcentaje de certidumbre"
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                    </div>
+
+                  {/* Casuísticas */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Casuísticas
+                      </label>
+                    <textarea
+                      value={prodItData.uxCases}
+                      onChange={(e) => setProdItData(prev => ({ ...prev, uxCases: e.target.value }))}
+                      className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      rows={3}
+                      placeholder="Casuísticas de UX..."
+                    />
+                  </div>
+                    </div>
+
+                {/* Producto */}
+                <div className={`${getAreaColor('Producto')} rounded-xl p-4`}>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                    <span className="text-xl mr-2">{getAreaIcon('Producto')}</span>
+                    Producto
+                  </h4>
+                  
+                  {/* Casuísticas */}
+                    <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Casuísticas
+                      </label>
+                      <textarea
+                      value={prodItData.productCases}
+                      onChange={(e) => setProdItData(prev => ({ ...prev, productCases: e.target.value }))}
+                      className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      rows={3}
+                      placeholder="Casuísticas de producto..."
+                    />
+                  </div>
+
+                  {/* Proveedores */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Proveedores
+                      </label>
+                      <textarea
+                      value={prodItData.productProviders}
+                      onChange={(e) => setProdItData(prev => ({ ...prev, productProviders: e.target.value }))}
+                      className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      rows={3}
+                      placeholder="Proveedores involucrados..."
+                      />
+                    </div>
+
+                  {/* Que No se contempla */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Que No se contempla
+                      </label>
+                      <textarea
+                      value={prodItData.productNotConsidered}
+                      onChange={(e) => setProdItData(prev => ({ ...prev, productNotConsidered: e.target.value }))}
+                      className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      rows={3}
+                      placeholder="Qué no se contempla en esta iniciativa..."
+                      />
+                    </div>
+                    </div>
+                  </div>
             )}
 
             {activeTab === 'dependency' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Dependencias</h3>
-                <p className="text-gray-600">Dependencias del proyecto...</p>
-              </div>
-            )}
+                <div className="flex items-center justify-between">
+                      <button 
+                    onClick={addNewDependency}
+                    className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                    <Plus size={16} className="mr-1" />
+                    Agregar Dependencia
+                      </button>
+                </div>
 
-            {activeTab === 'activity' && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Actividad</h3>
-                <p className="text-gray-600">Historial de actividad...</p>
-              </div>
-            )}
-
-            {activeTab === 'review' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <ClipboardCheck size={20} className="mr-2 text-blue-600" />
-                  Crear Revisión de Tarjeta
-                </h3>
-                
-                <div className="space-y-4">
-                  {/* Información de la iniciativa */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">Iniciativa a Revisar</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Título</label>
-                        <p className="text-sm text-gray-900 font-medium">{initiative?.title}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
-                          {initiative?.status.replace('-', ' ')}
-                        </span>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
-                        <p className="text-sm text-gray-900">{initiative?.category}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">País</label>
-                        <p className="text-sm text-gray-900">{initiative?.country}</p>
-                      </div>
+                {/* Grid de dependencias enviadas */}
+                {dependencies.filter(dep => dep.sent).length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {dependencies.filter(dep => dep.sent).map((dependency) => (
+                      <div key={dependency.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-500">Área:</span>
+                      <button 
+                              onClick={() => removeDependency(dependency.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Eliminar dependencia"
+                      >
+                              <X size={16} />
+                      </button>
                     </div>
+                          <p className="text-lg font-semibold text-gray-900">{dependency.area}</p>
+                          <div className="space-y-1">
+                            <span className="text-sm font-medium text-gray-500">Descripción:</span>
+                            <p className="text-sm text-gray-700">{dependency.description}</p>
                   </div>
-
-                  {/* Selección de usuarios */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-900">
-                      Seleccionar Revisores
-                    </label>
-                    
-                    {/* Usuarios seleccionados */}
-                    {selectedReviewers.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {selectedReviewers.map(userId => {
-                          const user = slackUsers.find(u => u.id === userId);
-                          return (
-                            <span
-                              key={userId}
-                              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                            >
-                              {user?.real_name || user?.name || userId}
-                              <button
-                                onClick={() => removeSelectedUser(userId)}
-                                className="ml-2 text-blue-600 hover:text-blue-800"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Search input */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={userSearchTerm}
-                        onChange={(e) => handleUserSearchChange(e.target.value)}
-                        onFocus={() => setShowUserDropdown(userSearchTerm.length > 0)}
-                        placeholder="Buscar usuarios de Slack... (escribe 2+ caracteres)"
-                        className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      />
-                      
-                      {/* Botón para cargar usuarios - solo visible si no hay usuarios y término < 2 caracteres */}
-                      {slackUsers.length === 0 && userSearchTerm.length < 2 && (
-                        <button
-                          onClick={loadSlackUsers}
-                          disabled={isLoadingUsers}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                        >
-                          {isLoadingUsers ? 'Cargando...' : 'Cargar'}
-                        </button>
-                      )}
-
-                      {/* Indicador de carga automática */}
-                      {isLoadingUsers && userSearchTerm.length >= 2 && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      )}
-
-                      {/* Dropdown de usuarios */}
-                      {showUserDropdown && userSearchTerm && filteredUsers.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {filteredUsers.map(user => (
-                            <div
-                              key={user.id}
-                              onClick={() => {
-                                toggleUserSelection(user.id);
-                                setUserSearchTerm('');
-                                setShowUserDropdown(false);
-                              }}
-                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                                selectedReviewers.includes(user.id) ? 'bg-blue-50' : ''
-                              }`}
-                            >
-                              <div className="flex items-center">
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {user.real_name || user.name}
-                                  </p>
-                                  {user.email && (
-                                    <p className="text-xs text-gray-500">{user.email}</p>
-                                  )}
-                                </div>
-                                {selectedReviewers.includes(user.id) && (
-                                  <CheckCircle size={16} className="text-blue-600" />
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Comentario de revisión */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-900">
-                      Comentario de Revisión
-                    </label>
-                    <textarea
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                      placeholder="Escribe tu comentario de revisión aquí..."
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                    />
-                  </div>
-
-                  {/* Botón de envío */}
-                  <button
-                    onClick={handleSendReview}
-                    disabled={selectedReviewers.length === 0 || !reviewComment.trim() || isSendingReview}
-                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                  >
-                    {isSendingReview ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <Send size={16} className="mr-2" />
-                        Enviar a {selectedReviewers.length} usuario(s)
-                      </>
-                    )}
-                  </button>
                 </div>
               </div>
-            )}
-          </div>
+                    ))}
+            </div>
+          )}
 
-          {/* Action Buttons */}
-          <div className="p-6 space-y-3">
-            <button
-              onClick={handleSaveDraft}
-              className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Save size={16} className="mr-2" />
-              Guardar
-            </button>
-            <button
-              onClick={handleCloseEvaluation}
-              className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <CheckCircle size={16} className="mr-2" />
-              Cerrar Evaluación
-            </button>
+                {/* Formularios de dependencias pendientes */}
+                {dependencies.filter(dep => !dep.sent).length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-md font-medium text-gray-700">Dependencias pendientes de envío:</h4>
+                    {dependencies.filter(dep => !dep.sent).map((dependency) => (
+                      <div key={dependency.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          {/* Campo de búsqueda de área */}
+                          <div className="flex-1 relative">
+                            <input
+                              type="text"
+                              value={currentDependencyId === dependency.id ? currentAreaSearch : dependency.area}
+                              onChange={(e) => {
+                                if (currentDependencyId === dependency.id) {
+                                  handleAreaSearchChange(e.target.value);
+                                }
+                              }}
+                              onFocus={() => {
+                                setCurrentDependencyId(dependency.id);
+                                setCurrentAreaSearch(dependency.area);
+                                setShowAreaDropdown(true);
+                              }}
+                              placeholder="Buscar área..."
+                              className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            
+                            {/* Dropdown de áreas */}
+                            {showAreaDropdown && currentDependencyId === dependency.id && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {filteredAreas.map(area => (
+                                  <div
+                                    key={area}
+                                    onClick={() => handleAreaSelect(area, dependency.id)}
+                                    className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <p className="text-sm font-medium text-gray-900">{area}</p>
+                    </div>
+                                ))}
+                        </div>
+                            )}
+                  </div>
+
+                          {/* Campo de descripción */}
+                          {dependency.area && (
+                    <div className="flex-1">
+                              <input
+                                type="text"
+                                value={dependency.description}
+                                onChange={(e) => handleDescriptionChange(dependency.id, e.target.value)}
+                                placeholder="Descripción de la dependencia..."
+                                className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                        </div>
+                          )}
+
+                          {/* Botón de envío */}
+                          {dependency.area && dependency.description && (
+                            <button
+                              onClick={() => sendDependency(dependency.id)}
+                              className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                              title="Enviar dependencia"
+                            >
+                              <Send size={16} />
+                            </button>
+                          )}
+
+                          {/* Botón de eliminar */}
+                          <button
+                            onClick={() => removeDependency(dependency.id)}
+                            className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            title="Eliminar dependencia"
+                          >
+                            <X size={16} />
+                          </button>
+                      </div>
+                    </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Estado vacío */}
+                {dependencies.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText size={48} className="mx-auto mb-3 text-gray-300" />
+                    <p>No hay dependencias agregadas</p>
+                    <p className="text-sm">Haz clic en "Agregar Dependencia" para comenzar</p>
+                </div>
+                )}
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+              <InitiativeActivityLog />
+            )}
+                
+                  </div>
+
           </div>
         </div>
       </main>
