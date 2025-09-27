@@ -33,6 +33,7 @@ export interface IntakeProgress {
 
 export class AgentService {
   private baseUrl: string;
+  private static lastProgress: number = 0;
 
   constructor() {
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -98,6 +99,11 @@ export class AgentService {
     return response.json();
   }
 
+  // Reset progress when starting a new initiative
+  static resetProgress(): void {
+    this.lastProgress = 0;
+  }
+
   // Utility function to track intake progress
   static trackProgress(formData: Record<string, any>): IntakeProgress {
     const requiredFields = [
@@ -114,10 +120,28 @@ export class AgentService {
       return value && value.toString().trim().length > 0;
     });
     
+    // Calcular progreso base
+    const baseProgress = (completedFields.length / requiredFields.length) * 100;
+    
+    // Agregar variación aleatoria más natural
+    const randomVariation = Math.random() * 12 - 6; // -6 a +6
+    const naturalProgress = Math.max(0, Math.min(100, baseProgress + randomVariation));
+    
+    // Asegurar que el progreso siempre aumente gradualmente
+    const currentProgress = this.lastProgress || 0;
+    const minIncrease = Math.max(3, Math.floor(Math.random() * 8) + 2); // 3-10 puntos mínimo
+    const finalProgress = Math.max(currentProgress + minIncrease, Math.round(naturalProgress));
+    
+    // Limitar el progreso máximo basado en campos completados
+    const maxAllowedProgress = Math.min(100, (completedFields.length / requiredFields.length) * 100 + 15);
+    const cappedProgress = Math.min(finalProgress, maxAllowedProgress);
+    
+    this.lastProgress = cappedProgress;
+    
     return {
       completedFields,
       totalRequiredFields: requiredFields,
-      completionPercentage: (completedFields.length / requiredFields.length) * 100,
+      completionPercentage: cappedProgress,
       isComplete: completedFields.length >= requiredFields.length
     };
   }

@@ -133,6 +133,9 @@ export default function IntakeChat({ onNavigateToKanban }: IntakeChatProps = {})
   }, [formData]);
 
   const initializeChat = async () => {
+    // Reset progress when starting new conversation
+    AgentService.resetProgress();
+    
     if (isGuidedMode) {
       // Use guided conversation mode
       const welcomeMessage: Message = {
@@ -439,6 +442,8 @@ ${data.client_segment || 'No especificado'}
   const handleContinueQuestions = () => {
     setIsComplete(false);
     setExecutiveSummary('');
+    // Reset progress when continuing questions
+    AgentService.resetProgress();
     
     // Add a message indicating we're continuing
     const continueMessage: Message = {
