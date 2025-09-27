@@ -1,0 +1,183 @@
+## JSON Schema para Vista General del Kanban
+
+### Estructura Principal
+
+```json
+{
+  "id": "string",
+  "title": "string",
+  "description": "string",
+  "status": "string",
+  "createdBy": "string",
+  "createdAt": "date",
+  "quarter": "string",
+  "score": "number",
+  "category": "string",
+  "vertical": "string",
+  "clientType": "string",
+  "country": "string",
+  "systemicRisk": "string",
+  "economicImpact": "string",
+  "economicImpactDescription": "string",
+  "experienceImpact": "array",
+  "competitiveApproach": "string",
+  "executiveSummary": "string",
+  "roi": "number"
+}
+```
+
+### Valores Posibles para Cada Campo
+
+#### Category (Categoría)
+```json
+{
+  "category": "Mandates / Regulatorio / Riesgo" | "Mejora de performance" | "Value Prop" | "Lanzamiento nuevo producto"
+}
+```
+
+#### Vertical
+```json
+{
+  "vertical": "Processing" | "Core" | "BIN Sponsor" | "Card Management & Logistics" | "Tokenización" | "Fraud Tools" | "Platform experience"
+}
+```
+
+#### Tipo de Cliente
+```json
+{
+  "clientType": "Todos" | "Top Issuer" | "Tier 1" | "Tier 2" | "Tier 3"
+}
+```
+
+#### País
+```json
+{
+  "country": "Todos" | "Argentina" | "Brasil" | "Chile" | "Colombia" | "Mexico" | "ROLA"
+}
+```
+
+#### Riesgo Sistémico
+```json
+{
+  "systemicRisk": "Bloqueante" | "Alto" | "Medio" | "Bajo" | "N/A"
+}
+```
+
+#### Impacto Económico
+```json
+{
+  "economicImpact": "Aumento significativo en revenue o nueva linea revenue" | "Aumento moderado en revenue existente" | "Impacto menor o dificil de cuantificar"
+}
+```
+
+#### Impacto en Experiencia (Array)
+```json
+{
+  "experienceImpact": ["Contact Rate", "Aprobación", "Aceptación", "Provisioning Rate", "SLA de envíos", "SLA de incidencias", "BPS (Chargebacks)", "Revisión Manual KYC"]
+}
+```
+
+#### Enfoque Competitivo
+```json
+{
+  "competitiveApproach": "Disrrustivo / Innovador" | "Mejora incremental" | "Paridad con competencia"
+}
+```
+
+### Ejemplo Completo de JSON
+
+```json
+{
+  "id": "init-4",
+  "title": "Implementación de Normativas Regulatorias Brasil",
+  "description": "Desarrollo de nuevas funcionalidades para cumplir con las normativas regulatorias más recientes de Brasil",
+  "status": "business-review",
+  "createdBy": "Ana Silva",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "quarter": "Q1 2024",
+  "score": 85,
+  "category": "Mandates / Regulatorio / Riesgo",
+  "vertical": "Processing",
+  "clientType": "Todos",
+  "country": "Brasil",
+  "systemicRisk": "Alto",
+  "economicImpact": "Aumento significativo en revenue o nueva linea revenue",
+  "economicImpactDescription": "Esta iniciativa generará un nuevo flujo de ingresos estimado en $2M anuales a través de la implementación de nuevas funcionalidades regulatorias que nos permitirán capturar nuevos segmentos de mercado.",
+  "experienceImpact": ["Contact Rate", "Aprobación", "SLA de incidencias"],
+  "competitiveApproach": "Disrrustivo / Innovador",
+  "executiveSummary": "Esta iniciativa busca implementar nuevas funcionalidades regulatorias que nos permitirán cumplir con las normativas brasileñas más recientes, generando un nuevo flujo de ingresos significativo mientras mejoramos la experiencia del cliente a través de procesos más eficientes.",
+  "roi": 340
+}
+```
+
+### Endpoints Sugeridos para CRUD
+
+#### GET - Obtener iniciativa
+```
+GET /api/initiatives/:id
+```
+
+#### PUT - Actualizar iniciativa
+```
+PUT /api/initiatives/:id
+Content-Type: application/json
+
+{
+  "category": "Mejora de performance",
+  "vertical": "Core",
+  "clientType": "Top Issuer",
+  "country": "Mexico",
+  "systemicRisk": "Medio",
+  "economicImpact": "Aumento moderado en revenue existente",
+  "economicImpactDescription": "Mejora en eficiencia que generará $500K adicionales",
+  "experienceImpact": ["Contact Rate", "Aprobación"],
+  "competitiveApproach": "Mejora incremental",
+  "executiveSummary": "Nueva descripción del resumen ejecutivo...",
+  "roi": 150
+}
+```
+
+#### PATCH - Actualizar campos específicos
+```
+PATCH /api/initiatives/:id
+Content-Type: application/json
+
+{
+  "roi": 400,
+  "systemicRisk": "Bajo"
+}
+```
+
+### Validaciones Recomendadas
+
+```typescript
+const validateInitiativeData = (data: any) => {
+  const validCategories = ['Mandates / Regulatorio / Riesgo', 'Mejora de performance', 'Value Prop', 'Lanzamiento nuevo producto'];
+  const validVerticals = ['Processing', 'Core', 'BIN Sponsor', 'Card Management & Logistics', 'Tokenización', 'Fraud Tools', 'Platform experience'];
+  const validClientTypes = ['Todos', 'Top Issuer', 'Tier 1', 'Tier 2', 'Tier 3'];
+  const validCountries = ['Todos', 'Argentina', 'Brasil', 'Chile', 'Colombia', 'Mexico', 'ROLA'];
+  const validRisks = ['Bloqueante', 'Alto', 'Medio', 'Bajo', 'N/A'];
+  const validEconomicImpacts = ['Aumento significativo en revenue o nueva linea revenue', 'Aumento moderado en revenue existente', 'Impacto menor o dificil de cuantificar'];
+  const validCompetitiveApproaches = ['Disrrustivo / Innovador', 'Mejora incremental', 'Paridad con competencia'];
+  
+  // Validar que los valores estén en las listas permitidas
+  // Validar que ROI sea un número positivo
+  // Validar que experienceImpact sea un array de strings válidos
+};
+```
+
+### Campos Requeridos vs Opcionales
+
+**Requeridos:**
+- id, title, status, createdBy, createdAt
+
+**Opcionales (con valores por defecto):**
+- category: "Mandates / Regulatorio / Riesgo"
+- vertical: "Processing"
+- clientType: "Todos"
+- country: "Todos"
+- systemicRisk: "N/A"
+- economicImpact: "Impacto menor o dificil de cuantificar"
+- experienceImpact: []
+- competitiveApproach: "Paridad con competencia"
+- roi: 0

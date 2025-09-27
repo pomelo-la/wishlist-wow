@@ -1,0 +1,184 @@
+## JSON Schema para Vista Prod & IT
+
+### Estructura Principal
+
+```json
+{
+  "id": "string",
+  "techSeeds": "number",
+  "techCertainty": "number",
+  "techNotes": "string",
+  "uxSeeds": "number",
+  "uxCertainty": "number",
+  "uxCases": "string",
+  "productCases": "string",
+  "productProviders": "string",
+  "productNotConsidered": "string"
+}
+```
+
+### Descripción de Campos
+
+#### Tecnología
+- **techSeeds** (number): Días de semillas para tecnología
+- **techCertainty** (number): Porcentaje de certidumbre (0-100)
+- **techNotes** (string): Notas técnicas y casuísticas
+
+#### UX
+- **uxSeeds** (number): Días de semillas para UX
+- **uxCertainty** (number): Porcentaje de certidumbre (0-100)
+- **uxCases** (string): Casuísticas de UX
+
+#### Producto
+- **productCases** (string): Casuísticas de producto
+- **productProviders** (string): Proveedores involucrados
+- **productNotConsidered** (string): Qué no se contempla en la iniciativa
+
+### Ejemplo Completo de JSON
+
+```json
+{
+  "id": "init-4",
+  "techSeeds": 15,
+  "techCertainty": 75,
+  "techNotes": "Implementación de nuevas APIs para integración con sistemas regulatorios brasileños. Se requiere migración de datos existentes y validación de compatibilidad.",
+  "uxSeeds": 8,
+  "uxCertainty": 85,
+  "uxCases": "Rediseño de formularios de onboarding para cumplir con normativas KYC. Implementación de flujos de verificación adicionales para usuarios brasileños.",
+  "productCases": "Nuevas funcionalidades de reporte automático para autoridades regulatorias. Dashboard de monitoreo en tiempo real de transacciones.",
+  "productProviders": "Integración con ProveedorRegulatorioBR, ConsultoraCompliance, y ServiciosKYC. Contratos ya firmados con 2 de 3 proveedores.",
+  "productNotConsidered": "No se contempla integración con sistemas legacy de bancos pequeños. Solo se soportará la normativa vigente, no futuras actualizaciones."
+}
+```
+
+### Endpoints Sugeridos para CRUD
+
+#### GET - Obtener datos de Prod & IT
+```
+GET /api/initiatives/:id/prod-it
+```
+
+#### PUT - Actualizar datos de Prod & IT
+```
+PUT /api/initiatives/:id/prod-it
+Content-Type: application/json
+
+{
+  "techSeeds": 20,
+  "techCertainty": 80,
+  "techNotes": "Nuevas notas técnicas actualizadas...",
+  "uxSeeds": 10,
+  "uxCertainty": 90,
+  "uxCases": "Nuevas casuísticas de UX...",
+  "productCases": "Nuevas funcionalidades de producto...",
+  "productProviders": "Nuevos proveedores involucrados...",
+  "productNotConsidered": "Nuevas exclusiones..."
+}
+```
+
+#### PATCH - Actualizar campos específicos
+```
+PATCH /api/initiatives/:id/prod-it
+Content-Type: application/json
+
+{
+  "techSeeds": 25,
+  "uxCertainty": 95
+}
+```
+
+### Validaciones Recomendadas
+
+```typescript
+const validateProdItData = (data: any) => {
+  // Validar que los seeds sean números positivos
+  if (data.techSeeds && (data.techSeeds < 0 || !Number.isInteger(data.techSeeds))) {
+    throw new Error('techSeeds debe ser un número entero positivo');
+  }
+  
+  if (data.uxSeeds && (data.uxSeeds < 0 || !Number.isInteger(data.uxSeeds))) {
+    throw new Error('uxSeeds debe ser un número entero positivo');
+  }
+  
+  // Validar que las certidumbres estén entre 0 y 100
+  if (data.techCertainty && (data.techCertainty < 0 || data.techCertainty > 100)) {
+    throw new Error('techCertainty debe estar entre 0 y 100');
+  }
+  
+  if (data.uxCertainty && (data.uxCertainty < 0 || data.uxCertainty > 100)) {
+    throw new Error('uxCertainty debe estar entre 0 y 100');
+  }
+  
+  // Validar que los strings no estén vacíos si se proporcionan
+  const stringFields = ['techNotes', 'uxCases', 'productCases', 'productProviders', 'productNotConsidered'];
+  stringFields.forEach(field => {
+    if (data[field] && typeof data[field] !== 'string') {
+      throw new Error(`${field} debe ser un string`);
+    }
+  });
+};
+```
+
+### Campos Requeridos vs Opcionales
+
+**Requeridos:**
+- id
+
+**Opcionales (con valores por defecto):**
+- techSeeds: 0
+- techCertainty: 0
+- techNotes: ""
+- uxSeeds: 0
+- uxCertainty: 0
+- uxCases: ""
+- productCases: ""
+- productProviders: ""
+- productNotConsidered: ""
+
+### Tipos de Datos
+
+```typescript
+interface ProdItData {
+  id: string;
+  techSeeds: number;
+  techCertainty: number;
+  techNotes: string;
+  uxSeeds: number;
+  uxCertainty: number;
+  uxCases: string;
+  productCases: string;
+  productProviders: string;
+  productNotConsidered: string;
+}
+```
+
+### Respuestas de Error
+
+```json
+{
+  "error": "Validation failed",
+  "message": "techSeeds debe ser un número entero positivo",
+  "field": "techSeeds"
+}
+```
+
+### Respuestas de Éxito
+
+```json
+{
+  "success": true,
+  "message": "Datos de Prod & IT actualizados correctamente",
+  "data": {
+    "id": "init-4",
+    "techSeeds": 15,
+    "techCertainty": 75,
+    "techNotes": "Implementación de nuevas APIs...",
+    "uxSeeds": 8,
+    "uxCertainty": 85,
+    "uxCases": "Rediseño de formularios...",
+    "productCases": "Nuevas funcionalidades...",
+    "productProviders": "Integración con ProveedorRegulatorioBR...",
+    "productNotConsidered": "No se contempla integración..."
+  }
+}
+```
