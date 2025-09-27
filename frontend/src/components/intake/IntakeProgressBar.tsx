@@ -4,6 +4,20 @@ interface IntakeProgressBarProps {
   progress: IntakeProgress;
 }
 
+// Field labels for better display
+const FIELD_LABELS: Record<string, string> = {
+  'title': 'Título',
+  'summary': 'Resumen',
+  'category': 'Categoría',
+  'vertical': 'Vertical',
+  'countries': 'Países',
+  'clientType': 'Tipo de Cliente',
+  'problem_description': 'Descripción del Problema',
+  'business_case': 'Caso de Negocio',
+  'economic_impact': 'Impacto Económico',
+  'client_segment': 'Segmento de Clientes'
+};
+
 export default function IntakeProgressBar({ progress }: IntakeProgressBarProps) {
   return (
     <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
@@ -39,17 +53,20 @@ export default function IntakeProgressBar({ progress }: IntakeProgressBarProps) 
           <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
             Ver campos completados
           </summary>
-          <div className="mt-2 grid grid-cols-2 gap-1">
+          <div className="mt-2 grid grid-cols-1 gap-1">
             {progress.totalRequiredFields.map((field) => (
               <div 
                 key={field}
-                className={`text-xs px-2 py-1 rounded ${
+                className={`text-xs px-2 py-1 rounded flex items-center ${
                   progress.completedFields.includes(field)
                     ? 'bg-green-100 text-green-800'
                     : 'bg-gray-100 text-gray-600'
                 }`}
               >
-                {field.replace('_', ' ')}
+                <span className="mr-2">
+                  {progress.completedFields.includes(field) ? '✅' : '⏳'}
+                </span>
+                {FIELD_LABELS[field] || field.replace('_', ' ')}
               </div>
             ))}
           </div>

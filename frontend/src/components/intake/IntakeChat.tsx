@@ -14,13 +14,20 @@ interface Message {
 }
 
 interface FormData {
-  problem: string;
-  client: string;
-  urgency: string;
+  title: string;
+  summary: string;
   category: string;
   vertical: string;
   countries: string[];
   clientType: string;
+  problem_description: string;
+  business_case: string;
+  economic_impact: string;
+  client_segment: string;
+  // Legacy fields for backward compatibility
+  problem: string;
+  client: string;
+  urgency: string;
   economicImpact: string;
   businessCase: string;
   experienceImpact: string[];
@@ -29,6 +36,65 @@ interface FormData {
   risks: string;
 }
 
+
+// Define the conversation flow with more human-like questions
+const CONVERSATION_FLOW = [
+  {
+    field: 'title',
+    question: '¡Perfecto! Empecemos por lo básico. ¿Cómo te gustaría llamar a esta iniciativa?',
+    placeholder: 'Ej: Implementación de autenticación de dos factores'
+  },
+  {
+    field: 'summary',
+    question: 'Genial, me gusta el nombre. Ahora cuéntame en pocas palabras, ¿de qué se trata esta iniciativa?',
+    placeholder: 'Ej: Implementar 2FA para mejorar la seguridad bancaria'
+  },
+  {
+    field: 'category',
+    question: 'Entiendo. Para clasificarla mejor, ¿dirías que esta iniciativa es más de cumplimiento regulatorio, mejora de performance, propuesta de valor, o lanzamiento de producto nuevo?',
+    options: ['Mandates / Regulatorio / Riesgo', 'Mejora de performance', 'Value Prop', 'Lanzamiento nuevo producto'],
+    type: 'select'
+  },
+  {
+    field: 'vertical',
+    question: 'Perfecto. Ahora, ¿en qué área de nuestro negocio se enfoca? ¿Es más de processing, core, BIN sponsor, o alguna otra vertical?',
+    options: ['Processing', 'Core', 'BIN Sponsor', 'Card Management & Logistics', 'Tokenización', 'Fraud Tools', 'Platform experience'],
+    type: 'select'
+  },
+  {
+    field: 'countries',
+    question: 'Excelente. ¿En qué países crees que tendría más impacto esta iniciativa?',
+    options: ['Todos', 'Argentina', 'Brasil', 'Chile', 'Colombia', 'Mexico', 'ROLA'],
+    type: 'multiselect'
+  },
+  {
+    field: 'clientType',
+    question: 'Muy bien. ¿Qué tipo de clientes se verían más beneficiados? ¿Todos nuestros clientes o algún segmento específico?',
+    options: ['Todos', 'Top Issuer', 'Tier 1', 'Tier 2', 'Tier 3'],
+    type: 'select'
+  },
+  {
+    field: 'problem_description',
+    question: 'Ahora cuéntame más en detalle, ¿qué problema específico estás viendo que esta iniciativa podría resolver?',
+    placeholder: 'Describe el problema en detalle...'
+  },
+  {
+    field: 'business_case',
+    question: 'Interesante. ¿Por qué crees que es importante resolver este problema ahora? ¿Cuál es el caso de negocio detrás de esta iniciativa?',
+    placeholder: 'Explica el valor de negocio...'
+  },
+  {
+    field: 'economic_impact',
+    question: 'Perfecto, me está quedando claro el valor. ¿Qué tipo de impacto económico esperarías? ¿Sería algo que genere revenue significativo, moderado, o es más difícil de cuantificar?',
+    options: ['Aumento significativo en revenue o nueva linea revenue', 'Aumento moderado en revenue existente', 'Impacto menor o dificil de cuantificar'],
+    type: 'select'
+  },
+  {
+    field: 'client_segment',
+    question: 'Última pregunta, ¿hay algún segmento específico de clientes al que te gustaría dirigir esta iniciativa?',
+    placeholder: 'Ej: Bancos grandes, Fintechs, etc.'
+  }
+];
 
 export default function IntakeChat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,6 +110,10 @@ export default function IntakeChat() {
   const [executiveSummary, setExecutiveSummary] = useState<string>('');
   const [isComplete, setIsComplete] = useState(false);
   const [agentService] = useState(new AgentService());
+  
+  // New state for guided conversation
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isGuidedMode, setIsGuidedMode] = useState(true);
 
   // Initialize chat
   useEffect(() => {
@@ -57,25 +127,51 @@ export default function IntakeChat() {
   }, [formData]);
 
   const initializeChat = async () => {
-    try {
-      console.log('Inicializando chat...');
-      setIsLoading(true);
-      const response = await agentService.startIntake('Quiero crear una nueva iniciativa');
+    if (isGuidedMode) {
+      // Use guided conversation mode
+      const welcomeMessage: Message = {
+        id: '1',
+        type: 'bot',
+        content: '¡Hola! 👋 Soy tu asistente de Pomelo para ayudarte a crear nuevas iniciativas. Me encanta escuchar nuevas ideas y te voy a guiar paso a paso para que podamos estructurar tu propuesta de la mejor manera. ¿Listo para empezar?',
+        timestamp: new Date()
+      };
+      setMessages([welcomeMessage]);
+      
+      // Start with the first question
+      askNextQuestion();
+    } else {
+      // Use AI agent mode (original behavior)
+      try {
+        console.log('Inicializando chat...');
+        setIsLoading(true);
+        const response = await agentService.startIntake('Quiero crear una nueva iniciativa');
 
-      console.log('Respuesta del backend:', response);
+        console.log('Respuesta del backend:', response);
 
-      if (response.questions && response.questions.length > 0) {
-        console.log('Pregunta recibida:', response.questions[0].text);
-        const botMessage: Message = {
-          id: Date.now().toString(),
-          type: 'bot',
-          content: response.questions[0].text,
-          section: 'context',
-          timestamp: new Date()
-        };
-        setMessages([botMessage]);
-      } else {
-        console.warn('No se recibieron preguntas del backend');
+        if (response.questions && response.questions.length > 0) {
+          console.log('Pregunta recibida:', response.questions[0].text);
+          const botMessage: Message = {
+            id: Date.now().toString(),
+            type: 'bot',
+            content: response.questions[0].text,
+            section: 'context',
+            timestamp: new Date()
+          };
+          setMessages([botMessage]);
+        } else {
+          console.warn('No se recibieron preguntas del backend');
+          const fallbackMessage: Message = {
+            id: '1',
+            type: 'bot',
+            content: "¡Hola! Vamos a crear una nueva iniciativa. ¿Qué problema específico querés resolver?",
+            section: 'context',
+            timestamp: new Date()
+          };
+          setMessages([fallbackMessage]);
+        }
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        // Fallback to static message
         const fallbackMessage: Message = {
           id: '1',
           type: 'bot',
@@ -84,20 +180,22 @@ export default function IntakeChat() {
           timestamp: new Date()
         };
         setMessages([fallbackMessage]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error initializing chat:', error);
-      // Fallback to static message
-      const fallbackMessage: Message = {
-        id: '1',
+    }
+  };
+
+  const askNextQuestion = () => {
+    if (currentStep < CONVERSATION_FLOW.length) {
+      const step = CONVERSATION_FLOW[currentStep];
+      const questionMessage: Message = {
+        id: `question-${currentStep}`,
         type: 'bot',
-        content: "¡Hola! Vamos a crear una nueva iniciativa. ¿Qué problema específico querés resolver?",
-        section: 'context',
+        content: step.question,
         timestamp: new Date()
       };
-      setMessages([fallbackMessage]);
-    } finally {
-      setIsLoading(false);
+      setMessages(prev => [...prev, questionMessage]);
     }
   };
 
@@ -115,63 +213,12 @@ export default function IntakeChat() {
     setIsLoading(true);
 
     try {
-      // Update form data with user input
-      const updatedFormData = { ...formData };
-      
-      // Always store the conversation context
-      if (!updatedFormData.conversation_history) {
-        updatedFormData.conversation_history = [];
-      }
-      updatedFormData.conversation_history.push({
-        user: currentInput,
-        timestamp: new Date().toISOString()
-      });
-
-      // The LLM will extract structured data automatically, no need for manual extraction
-
-      setFormData(updatedFormData);
-
-      // Call agent API
-      const response = await agentService.continueIntake(currentInput, updatedFormData);
-
-      // Merge extracted data from LLM response
-      if (response.extracted_data) {
-        Object.assign(updatedFormData, response.extracted_data);
-        setFormData(updatedFormData);
-      }
-
-      // Update awaiting_confirmation state
-      if (response.awaiting_confirmation) {
-        updatedFormData.awaiting_confirmation = true;
-        setFormData(updatedFormData);
+      if (isGuidedMode) {
+        // Handle guided conversation mode
+        await handleGuidedResponse();
       } else {
-        // Clear confirmation flag if not awaiting anymore
-        delete updatedFormData.awaiting_confirmation;
-        setFormData(updatedFormData);
-      }
-
-      if (response.is_complete) {
-        // Use confirmation summary from agent response
-        setExecutiveSummary(response.confirmation_summary || 'Resumen generado automáticamente');
-        setIsComplete(true);
-        
-        const summaryMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: response.confirmation_summary || '¡Excelente! He recopilado toda la información necesaria.',
-          section: 'summary',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, summaryMessage]);
-      } else if (response.questions && response.questions.length > 0) {
-        const botMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: response.questions[0].text,
-          section: 'continue',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
+        // Handle AI agent mode (original behavior)
+        await handleAgentResponse();
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -186,6 +233,164 @@ export default function IntakeChat() {
     } finally {
       setIsLoading(false);
       setCurrentInput('');
+    }
+  };
+
+  const handleGuidedResponse = async () => {
+    if (currentStep < CONVERSATION_FLOW.length) {
+      const step = CONVERSATION_FLOW[currentStep];
+      const updatedFormData = { ...formData };
+      
+      // Store the user's response for the current field
+      updatedFormData[step.field] = currentInput;
+      setFormData(updatedFormData);
+      
+      // Move to next step
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      
+      if (nextStep < CONVERSATION_FLOW.length) {
+        // Ask next question with confirmation
+        const nextStepData = CONVERSATION_FLOW[nextStep];
+        const confirmationResponses: Record<string, string> = {
+          'title': '¡Perfecto! Me gusta el nombre que elegiste. ',
+          'summary': 'Excelente, me queda claro de qué se trata. ',
+          'category': 'Perfecto, esa categoría tiene mucho sentido. ',
+          'vertical': 'Genial, esa vertical es muy importante para nosotros. ',
+          'countries': 'Excelente alcance geográfico. ',
+          'clientType': 'Perfecto, entiendo el segmento objetivo. ',
+          'problem_description': 'Muy interesante, ese es un problema real que vale la pena resolver. ',
+          'business_case': 'Excelente justificación, me convence el caso de negocio. ',
+          'economic_impact': 'Perfecto, entiendo el potencial de impacto. ',
+          'client_segment': 'Excelente, ya tengo una visión completa de tu iniciativa. '
+        };
+        
+        const confirmation = confirmationResponses[step.field] || 'Perfecto, gracias por esa información. ';
+        const combinedMessage = confirmation + nextStepData.question;
+        
+        const nextQuestionMessage: Message = {
+          id: `question-${nextStep}`,
+          type: 'bot',
+          content: combinedMessage,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, nextQuestionMessage]);
+      } else {
+        // All questions completed
+        const completionMessage: Message = {
+          id: 'completion',
+          type: 'bot',
+          content: '¡Perfecto! 🎉 Me ha encantado conocer tu iniciativa. Tienes una propuesta muy interesante y creo que puede generar mucho valor para Pomelo. Ahora voy a organizar toda la información que me has compartido en un resumen ejecutivo para que puedas revisarlo.',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, completionMessage]);
+        
+        // Generate executive summary
+        await generateExecutiveSummary(updatedFormData);
+      }
+    }
+  };
+
+  const handleAgentResponse = async () => {
+    // Update form data with user input
+    const updatedFormData = { ...formData };
+    
+    // Always store the conversation context
+    if (!updatedFormData.conversation_history) {
+      updatedFormData.conversation_history = [];
+    }
+    updatedFormData.conversation_history.push({
+      user: currentInput,
+      timestamp: new Date().toISOString()
+    });
+
+    setFormData(updatedFormData);
+
+    // Call agent API
+    const response = await agentService.continueIntake(currentInput, updatedFormData);
+
+    // Merge extracted data from LLM response
+    if (response.extracted_data) {
+      Object.assign(updatedFormData, response.extracted_data);
+      setFormData(updatedFormData);
+    }
+
+    // Update awaiting_confirmation state
+    if (response.awaiting_confirmation) {
+      updatedFormData.awaiting_confirmation = true;
+      setFormData(updatedFormData);
+    } else {
+      // Clear confirmation flag if not awaiting anymore
+      delete updatedFormData.awaiting_confirmation;
+      setFormData(updatedFormData);
+    }
+
+    if (response.is_complete) {
+      // Use confirmation summary from agent response
+      setExecutiveSummary(response.confirmation_summary || 'Resumen generado automáticamente');
+      setIsComplete(true);
+      
+      const summaryMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: response.confirmation_summary || '¡Excelente! He recopilado toda la información necesaria.',
+        section: 'summary',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, summaryMessage]);
+    } else if (response.questions && response.questions.length > 0) {
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: response.questions[0].text,
+        section: 'continue',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+    }
+  };
+
+  const generateExecutiveSummary = async (data: Partial<FormData>) => {
+    try {
+      // Create a more human-like executive summary
+      const summary = `
+**📋 Resumen de tu Iniciativa**
+
+**🎯 Iniciativa:** ${data.title || 'No especificado'}
+**📂 Categoría:** ${data.category || 'No especificado'}
+**🏢 Vertical:** ${data.vertical || 'No especificado'}
+**🌍 Alcance:** ${Array.isArray(data.countries) ? data.countries.join(', ') : data.countries || 'No especificado'}
+**👥 Clientes Objetivo:** ${data.clientType || 'No especificado'}
+
+**🔍 El Problema:**
+${data.problem_description || 'No especificado'}
+
+**💼 Por qué es Importante:**
+${data.business_case || 'No especificado'}
+
+**💰 Impacto Esperado:**
+${data.economic_impact || 'No especificado'}
+
+**🎯 Segmento Específico:**
+${data.client_segment || 'No especificado'}
+
+---
+*¡Excelente trabajo! Tu iniciativa está lista para ser evaluada por el equipo. 🚀*
+      `.trim();
+
+      setExecutiveSummary(summary);
+      setIsComplete(true);
+      
+      const summaryMessage: Message = {
+        id: 'executive-summary',
+        type: 'bot',
+        content: summary,
+        section: 'summary',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, summaryMessage]);
+    } catch (error) {
+      console.error('Error generating executive summary:', error);
     }
   };
 
@@ -316,10 +521,34 @@ export default function IntakeChat() {
     <div className="flex h-full bg-white">
       {/* Sidebar with progress */}
       <div className="w-80 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
-        <h3 className="font-semibold text-gray-900 mb-4">Progreso del Intake</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900">Progreso del Intake</h3>
+          <button
+            onClick={() => setIsGuidedMode(!isGuidedMode)}
+            className={`px-3 py-1 text-xs rounded-full transition-colors ${
+              isGuidedMode 
+                ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                : 'bg-gray-100 text-gray-600 border border-gray-200'
+            }`}
+          >
+            {isGuidedMode ? 'Modo Guiado' : 'Modo AI'}
+          </button>
+        </div>
         
         {/* Progress Bar */}
         <IntakeProgressBar progress={progress} />
+        
+        {/* Current Step Indicator (only in guided mode) */}
+        {isGuidedMode && currentStep < CONVERSATION_FLOW.length && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-xs text-blue-700 font-medium mb-1">
+              Paso {currentStep + 1} de {CONVERSATION_FLOW.length}
+            </div>
+            <div className="text-xs text-blue-600">
+              {CONVERSATION_FLOW[currentStep]?.question}
+            </div>
+          </div>
+        )}
         
         {/* Executive Summary */}
         {executiveSummary && (
