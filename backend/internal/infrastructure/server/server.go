@@ -40,6 +40,7 @@ func (s *Server) setupRoutes() {
 	kanbanMoveHandler := handlers.NewKanbanMoveHandler(s.db)
 	agentHandler := handlers.NewAgentHandler(s.db, agentService)
 	slackHandler := handlers.NewSlackHandler()
+	prodItHandler := handlers.NewProdItHandler(s.db)
 
 	// Middleware
 	s.router.Use(middleware.CORSMiddleware())
@@ -47,6 +48,11 @@ func (s *Server) setupRoutes() {
 	// Health check
 	s.router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	// Test endpoint for Prod & IT
+	s.router.GET("/test-prod-it", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "Prod & IT handler is working"})
 	})
 
 	// Public routes
@@ -86,6 +92,11 @@ func (s *Server) setupRoutes() {
 			// Suggestions
 			initiatives.GET("/:id/suggestions", agentHandler.GetSuggestions)
 			initiatives.POST("/:id/suggestions/apply", agentHandler.ApplySuggestion)
+
+			// Prod & IT routes
+			initiatives.GET("/:id/prod-it", prodItHandler.GetProdItData)
+			initiatives.PUT("/:id/prod-it", prodItHandler.UpdateProdItData)
+			initiatives.POST("/:id/prod-it", prodItHandler.CreateProdItData)
 		}
 
 		// New Kanban CRUD routes
