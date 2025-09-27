@@ -45,6 +45,7 @@ function DroppableColumn({ status, title, headerColor, children, initiativeCount
       className={`flex-shrink-0 w-80 bg-gray-100 mx-2 my-4 rounded-lg shadow-sm ${
         isOver ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
       }`}
+      data-status={status}
     >
       {/* Column Header */}
       <div className={`${headerColor} px-4 py-3 rounded-t-lg`}>
@@ -185,15 +186,36 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
+    console.log('DragEnd event:', { active: active.id, over: over?.id });
+    
     if (!over) return;
 
     const initiativeId = active.id as string;
-    const newStatus = over.id as string;
+    let newStatus = over.id as string;
 
-    // Verificar que el estado sea válido
+    // Si el over.id es un ID de iniciativa, necesitamos encontrar la columna correcta
     const validStatuses = statusConfig.map(status => status.key);
+    
+    // Si el over.id no es un estado válido, significa que se soltó sobre otra iniciativa
+    // En ese caso, necesitamos encontrar la columna que contiene esa iniciativa
     if (!validStatuses.includes(newStatus)) {
-      console.log('Estado no válido:', newStatus);
+      console.log('Soltado sobre otra iniciativa, buscando columna...');
+      const targetInitiative = initiatives.find(i => i.id === newStatus);
+      if (targetInitiative) {
+        newStatus = targetInitiative.status;
+        console.log('Nueva columna encontrada:', newStatus);
+      } else {
+        console.log('No se pudo encontrar la iniciativa objetivo');
+        setActiveId(null);
+        return;
+      }
+    }
+
+    console.log('Initiative ID:', initiativeId, 'New Status:', newStatus);
+    console.log('Valid statuses:', validStatuses);
+    
+    if (!validStatuses.includes(newStatus)) {
+      console.log('Estado no válido:', newStatus, 'Valid statuses:', validStatuses);
       setActiveId(null);
       return;
     }
@@ -221,19 +243,30 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
     });
 
     try {
+      console.log('Llamando a la API para mover iniciativa...');
       // Update initiative status via API
-      await apiService.moveInitiative(initiativeId, {
+      const moveResult = await apiService.moveInitiative(initiativeId, {
         new_status: newStatus,
         previous_status: currentInitiative.status,
         moved_by: 'user' // TODO: Get actual user ID
       });
+      console.log('Respuesta de la API:', moveResult);
 
       // Reload the specific initiative to get updated data including score
       try {
-        const updatedInitiative = await apiService.getInitiative(initiativeId);
+        console.log('Recargando iniciativa desde la API...');
+        const updatedInitiativeResponse = await apiService.getInitiative(initiativeId);
+        console.log('Iniciativa recargada:', updatedInitiativeResponse);
+        
+        // Extraer el objeto de datos de la respuesta
+        const updatedInitiative = updatedInitiativeResponse.data || updatedInitiativeResponse;
+        console.log('Iniciativa extraída:', updatedInitiative);
+        
         const mappedInitiative = mapApiInitiativeToInitiative(updatedInitiative);
+        console.log('Iniciativa mapeada:', mappedInitiative);
         
         // Update local state with the fresh data from backend
+        console.log('Actualizando estado local...');
         setInitiatives(prev => 
           prev.map(initiative => 
             initiative.id === initiativeId 
@@ -241,6 +274,7 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
               : initiative
           )
         );
+        console.log('Estado local actualizado');
       } catch (reloadErr) {
         console.warn('Error reloading initiative, updating status only:', reloadErr);
         // Fallback: just update the status if reload fails
@@ -277,38 +311,45 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
   const statusConfig = [
     {
       key: 'Backlog',
-      title: 'Iniciativa Cargada',
+      title: 'Backlog',
       color: 'bg-yellow-50 border-yellow-200',
       headerColor: 'bg-yellow-100'
     },
     {
       key: 'Iniciativas cargadas a revisar',
-      title: 'Revisión Negocio',
+      title: 'Revisión de Negocio',
       color: 'bg-blue-50 border-blue-200',
       headerColor: 'bg-blue-100'
     },
     {
       key: 'Iniciativas a estimar',
-      title: 'Revisión Producto/Tech/UX',
+      title: 'Estimaciones Prod : IT : UX',
       color: 'bg-purple-50 border-purple-200',
       headerColor: 'bg-purple-100'
     },
     {
-      key: 'Priorizacion final',
-      title: 'Cierre',
-      color: 'bg-orange-50 border-orange-200',
-      headerColor: 'bg-orange-100'
-    },
-    {
       key: 'Roadmap del Q',
-      title: 'Priorizada',
+      title: 'Priorizadas',
       color: 'bg-green-50 border-green-200',
       headerColor: 'bg-green-100'
+    },
+    {
+      key: 'Priorizacion final',
+      title: 'Cancelado',
+      color: 'bg-red-50 border-red-200',
+      headerColor: 'bg-red-100'
     }
   ];
 
   const getInitiativesByStatus = (status: string) => {
-    return filteredInitiatives.filter(initiative => initiative.status === status);
+    const initiatives = filteredInitiatives.filter(initiative => initiative.status === status);
+    
+    // Si es la columna "Priorizadas", ordenar por ROI (de mayor a menor)
+    if (status === 'Roadmap del Q') {
+      return initiatives.sort((a, b) => (b.roi || 0) - (a.roi || 0));
+    }
+    
+    return initiatives;
   };
 
   if (loading) {
@@ -390,6 +431,7 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
                   <SortableContext
                     items={statusInitiatives.map(initiative => initiative.id)}
                     strategy={verticalListSortingStrategy}
+                    id={status.key}
                   >
                     {statusInitiatives.length === 0 ? (
                       <div className="text-center text-gray-500 text-sm py-8">

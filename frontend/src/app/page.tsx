@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
-import Dashboard from '@/components/dashboard/Dashboard';
+import UnifiedDashboard from '@/components/dashboard/UnifiedDashboard';
 import KanbanBoard from '@/components/kanban/KanbanBoard';
 import IntakeChat from '@/components/intake/IntakeChat';
 
@@ -30,8 +30,8 @@ export default function Home() {
       
       <main className="h-[calc(100vh-5rem)]">
         {activeView === 'dashboard' && (
-          <div className="container mx-auto px-6 py-8">
-            <Dashboard />
+          <div className="container mx-auto px-6 py-8 h-full overflow-y-auto">
+            <UnifiedDashboard />
           </div>
         )}
         {activeView === 'kanban' && (

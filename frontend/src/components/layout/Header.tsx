@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, Columns, User, Plus, Search, X } from 'lucide-react';
+import { BarChart3, Columns, User, Plus, Search, X, TrendingUp } from 'lucide-react';
 
 interface HeaderProps {
   activeView: 'dashboard' | 'kanban' | 'intake';

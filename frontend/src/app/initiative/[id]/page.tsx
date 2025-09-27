@@ -27,7 +27,8 @@ import {
   Percent,
   ChevronRight,
   Plus,
-  X
+  X,
+  TrendingUp
 } from 'lucide-react';
 
 interface ReviewMessage {
@@ -110,6 +111,17 @@ export default function InitiativeEvaluationPage() {
     'Operations', 'Customer Success', 'Finance', 'Legal', 'Marketing', 'People', 
     'Printing & Logistics', 'Customer Support', 'Commercial'
   ];
+
+  // Helper functions to handle state updates with logging
+  const updateInitiativeData = (field: string, value: any) => {
+    console.log('cambio Score');
+    setInitiativeData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateProdItData = (field: string, value: any) => {
+    console.log('nuevo ROI');
+    setProdItData(prev => ({ ...prev, [field]: value }));
+  };
 
   // Load initiative data from API
   useEffect(() => {
@@ -484,6 +496,11 @@ export default function InitiativeEvaluationPage() {
                   <Zap size={16} className="text-gray-500" />
                   <span className="text-sm text-gray-600">Score: {initiative?.score || 85}</span>
                 </div>
+                
+                <div className="flex items-center space-x-2">
+                  <TrendingUp size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">ROI: {initiative?.roi || 0}%</span>
+                </div>
                   </div>
             </div>
           </div>
@@ -646,7 +663,7 @@ export default function InitiativeEvaluationPage() {
                   {isEditMode ? (
                     <textarea
                       value={initiativeData.executiveSummary}
-                      onChange={(e) => setInitiativeData(prev => ({ ...prev, executiveSummary: e.target.value }))}
+                      onChange={(e) => updateInitiativeData('executiveSummary', e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       rows={4}
                       placeholder="Resumen ejecutivo de la iniciativa..."
@@ -668,7 +685,7 @@ export default function InitiativeEvaluationPage() {
                         <input
                           type="number"
                           value={initiativeData.roi}
-                          onChange={(e) => setInitiativeData(prev => ({ ...prev, roi: parseInt(e.target.value) || 0 }))}
+                          onChange={(e) => updateInitiativeData('roi', parseInt(e.target.value) || 0)}
                           className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-right font-bold text-2xl"
                         />
                       ) : (
@@ -689,7 +706,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.category}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, category: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('category', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Mandates / Regulatorio / Riesgo">⚖️ Mandates / Regulatorio / Riesgo</option>
@@ -714,7 +731,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.vertical}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, vertical: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('vertical', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Processing">⚙️ Processing</option>
@@ -742,7 +759,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.clientType}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, clientType: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('clientType', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Todos">👥 Todos</option>
@@ -773,7 +790,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.country}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, country: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('country', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Todos">🌍 Todos</option>
@@ -801,7 +818,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.systemicRisk}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, systemicRisk: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('systemicRisk', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Bloqueante">🔴 Bloqueante</option>
@@ -829,7 +846,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.economicImpact}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, economicImpact: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('economicImpact', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Aumento significativo en revenue o nueva linea revenue">💰 Aumento significativo en revenue o nueva linea revenue</option>
@@ -853,7 +870,7 @@ export default function InitiativeEvaluationPage() {
                     {isEditMode ? (
                       <select
                         value={initiativeData.competitiveApproach}
-                        onChange={(e) => setInitiativeData(prev => ({ ...prev, competitiveApproach: e.target.value }))}
+                        onChange={(e) => updateInitiativeData('competitiveApproach', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="Disrrustivo / Innovador">🚀 Disrrustivo / Innovador</option>
@@ -878,7 +895,7 @@ export default function InitiativeEvaluationPage() {
                   {isEditMode ? (
                     <textarea
                       value={initiativeData.economicImpactDescription}
-                      onChange={(e) => setInitiativeData(prev => ({ ...prev, economicImpactDescription: e.target.value }))}
+                      onChange={(e) => updateInitiativeData('economicImpactDescription', e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       rows={3}
                       placeholder="Describe el impacto económico de la iniciativa..."
@@ -903,15 +920,9 @@ export default function InitiativeEvaluationPage() {
                             checked={initiativeData.experienceImpact.includes(item)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setInitiativeData(prev => ({
-                                  ...prev,
-                                  experienceImpact: [...prev.experienceImpact, item]
-                                }));
-                            } else {
-                                setInitiativeData(prev => ({
-                                  ...prev,
-                                  experienceImpact: prev.experienceImpact.filter(impact => impact !== item)
-                                }));
+                                updateInitiativeData('experienceImpact', [...initiativeData.experienceImpact, item]);
+                              } else {
+                                updateInitiativeData('experienceImpact', initiativeData.experienceImpact.filter(impact => impact !== item));
                               }
                             }}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -951,7 +962,7 @@ export default function InitiativeEvaluationPage() {
                       <input
                         type="number"
                         value={prodItData.techSeeds}
-                        onChange={(e) => setProdItData(prev => ({ ...prev, techSeeds: parseInt(e.target.value) || 0 }))}
+                        onChange={(e) => updateProdItData('techSeeds', parseInt(e.target.value) || 0)}
                         className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Días de semillas"
                         min="0"
@@ -966,7 +977,7 @@ export default function InitiativeEvaluationPage() {
                       <input
                         type="number"
                         value={prodItData.techCertainty}
-                        onChange={(e) => setProdItData(prev => ({ ...prev, techCertainty: parseInt(e.target.value) || 0 }))}
+                        onChange={(e) => updateProdItData('techCertainty', parseInt(e.target.value) || 0)}
                         className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Porcentaje de certidumbre"
                         min="0"
@@ -982,7 +993,7 @@ export default function InitiativeEvaluationPage() {
                     </label>
                     <textarea
                       value={prodItData.techNotes}
-                      onChange={(e) => setProdItData(prev => ({ ...prev, techNotes: e.target.value }))}
+                      onChange={(e) => updateProdItData('techNotes', e.target.value)}
                       className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={3}
                       placeholder="Notas técnicas y casuísticas..."
@@ -1006,7 +1017,7 @@ export default function InitiativeEvaluationPage() {
                         <input
                           type="number"
                         value={prodItData.uxSeeds}
-                        onChange={(e) => setProdItData(prev => ({ ...prev, uxSeeds: parseInt(e.target.value) || 0 }))}
+                        onChange={(e) => updateProdItData('uxSeeds', parseInt(e.target.value) || 0)}
                         className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                         placeholder="Días de semillas"
                         min="0"
@@ -1021,7 +1032,7 @@ export default function InitiativeEvaluationPage() {
                         <input
                           type="number"
                         value={prodItData.uxCertainty}
-                        onChange={(e) => setProdItData(prev => ({ ...prev, uxCertainty: parseInt(e.target.value) || 0 }))}
+                        onChange={(e) => updateProdItData('uxCertainty', parseInt(e.target.value) || 0)}
                         className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                         placeholder="Porcentaje de certidumbre"
                           min="0"
@@ -1037,7 +1048,7 @@ export default function InitiativeEvaluationPage() {
                       </label>
                     <textarea
                       value={prodItData.uxCases}
-                      onChange={(e) => setProdItData(prev => ({ ...prev, uxCases: e.target.value }))}
+                      onChange={(e) => updateProdItData('uxCases', e.target.value)}
                       className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                       rows={3}
                       placeholder="Casuísticas de UX..."
@@ -1059,7 +1070,7 @@ export default function InitiativeEvaluationPage() {
                       </label>
                       <textarea
                       value={prodItData.productCases}
-                      onChange={(e) => setProdItData(prev => ({ ...prev, productCases: e.target.value }))}
+                      onChange={(e) => updateProdItData('productCases', e.target.value)}
                       className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       rows={3}
                       placeholder="Casuísticas de producto..."
@@ -1073,7 +1084,7 @@ export default function InitiativeEvaluationPage() {
                       </label>
                       <textarea
                       value={prodItData.productProviders}
-                      onChange={(e) => setProdItData(prev => ({ ...prev, productProviders: e.target.value }))}
+                      onChange={(e) => updateProdItData('productProviders', e.target.value)}
                       className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       rows={3}
                       placeholder="Proveedores involucrados..."
@@ -1087,7 +1098,7 @@ export default function InitiativeEvaluationPage() {
                       </label>
                       <textarea
                       value={prodItData.productNotConsidered}
-                      onChange={(e) => setProdItData(prev => ({ ...prev, productNotConsidered: e.target.value }))}
+                      onChange={(e) => updateProdItData('productNotConsidered', e.target.value)}
                       className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       rows={3}
                       placeholder="Qué no se contempla en esta iniciativa..."
