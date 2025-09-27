@@ -6,6 +6,7 @@ import { Initiative } from '@/types/initiative';
 import { apiService, Initiative as ApiInitiative } from '@/services/api';
 import Header from '@/components/layout/Header';
 import InitiativeActivityLog from '@/components/activity/InitiativeActivityLog';
+import SlackMentionInput from '@/components/common/SlackMentionInput';
 import { 
   ArrowLeft, 
   MessageSquare, 
@@ -94,7 +95,7 @@ export default function InitiativeEvaluationPage() {
   const [dependencies, setDependencies] = useState<Array<{
     id: string;
     area: string;
-    description: string;
+    dependencyRef: string; // Changed from description to dependencyRef for Slack mention
     sent?: boolean;
   }>>([]);
   const [currentAreaSearch, setCurrentAreaSearch] = useState('');
@@ -254,9 +255,9 @@ export default function InitiativeEvaluationPage() {
     setCurrentDependencyId(null);
   };
 
-  const handleDescriptionChange = (dependencyId: string, description: string) => {
+  const handleDependencyRefChange = (dependencyId: string, dependencyRef: string) => {
     setDependencies(prev => prev.map(dep => 
-      dep.id === dependencyId ? { ...dep, description } : dep
+      dep.id === dependencyId ? { ...dep, dependencyRef } : dep
     ));
   };
 
@@ -265,7 +266,7 @@ export default function InitiativeEvaluationPage() {
     setDependencies(prev => [...prev, {
       id: newId,
       area: '',
-      description: ''
+      dependencyRef: ''
     }]);
     setCurrentDependencyId(newId);
     setCurrentAreaSearch('');
@@ -278,10 +279,10 @@ export default function InitiativeEvaluationPage() {
 
   const sendDependency = (dependencyId: string) => {
     const dependency = dependencies.find(dep => dep.id === dependencyId);
-    if (dependency && dependency.area && dependency.description) {
+    if (dependency && dependency.area && dependency.dependencyRef) {
       console.log('Enviando dependencia:', dependency);
       // Aquí se enviaría la dependencia al backend
-      alert(`Dependencia enviada: ${dependency.area} - ${dependency.description}`);
+      alert(`Dependencia enviada: ${dependency.area} - ${dependency.dependencyRef}`);
       
       // Marcar como enviada (agregar flag)
       setDependencies(prev => prev.map(dep => 
@@ -1126,8 +1127,8 @@ export default function InitiativeEvaluationPage() {
                     </div>
                           <p className="text-lg font-semibold text-gray-900">{dependency.area}</p>
                           <div className="space-y-1">
-                            <span className="text-sm font-medium text-gray-500">Descripción:</span>
-                            <p className="text-sm text-gray-700">{dependency.description}</p>
+                            <span className="text-sm font-medium text-gray-500">Referencia:</span>
+                            <p className="text-sm text-gray-700">{dependency.dependencyRef}</p>
                   </div>
                 </div>
               </div>
@@ -1177,21 +1178,20 @@ export default function InitiativeEvaluationPage() {
                             )}
                   </div>
 
-                          {/* Campo de descripción */}
+                          {/* Campo de referencia con @menciones de Slack */}
                           {dependency.area && (
                     <div className="flex-1">
-                              <input
-                                type="text"
-                                value={dependency.description}
-                                onChange={(e) => handleDescriptionChange(dependency.id, e.target.value)}
-                                placeholder="Descripción de la dependencia..."
-                                className="w-full px-3 py-2 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              <SlackMentionInput
+                                value={dependency.dependencyRef}
+                                onChange={(value) => handleDependencyRefChange(dependency.id, value)}
+                                placeholder="Mencionar a alguien de Slack..."
+                                className="w-full"
                               />
                         </div>
                           )}
 
                           {/* Botón de envío */}
-                          {dependency.area && dependency.description && (
+                          {dependency.area && dependency.dependencyRef && (
                             <button
                               onClick={() => sendDependency(dependency.id)}
                               className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

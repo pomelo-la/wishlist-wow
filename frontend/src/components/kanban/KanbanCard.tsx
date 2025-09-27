@@ -177,7 +177,7 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
         {/* Footer with score and metadata */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {initiative.score && (
+            {initiative.score !== undefined && initiative.score !== null && (
               <div className="flex items-center">
                 <Star size={12} className={`mr-1 ${getPriorityColor(initiative.score)}`} />
                 <span className={`text-xs font-semibold ${getPriorityColor(initiative.score)}`}>

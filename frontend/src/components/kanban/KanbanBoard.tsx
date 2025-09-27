@@ -228,14 +228,30 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
         moved_by: 'user' // TODO: Get actual user ID
       });
 
-      // Update local state
-      setInitiatives(prev => 
-        prev.map(initiative => 
-          initiative.id === initiativeId 
-            ? { ...initiative, status: newStatus as any, updatedAt: new Date() }
-            : initiative
-        )
-      );
+      // Reload the specific initiative to get updated data including score
+      try {
+        const updatedInitiative = await apiService.getInitiative(initiativeId);
+        const mappedInitiative = mapApiInitiativeToInitiative(updatedInitiative);
+        
+        // Update local state with the fresh data from backend
+        setInitiatives(prev => 
+          prev.map(initiative => 
+            initiative.id === initiativeId 
+              ? mappedInitiative
+              : initiative
+          )
+        );
+      } catch (reloadErr) {
+        console.warn('Error reloading initiative, updating status only:', reloadErr);
+        // Fallback: just update the status if reload fails
+        setInitiatives(prev => 
+          prev.map(initiative => 
+            initiative.id === initiativeId 
+              ? { ...initiative, status: newStatus as any, updatedAt: new Date() }
+              : initiative
+          )
+        );
+      }
     } catch (err) {
       console.error('Error updating initiative status:', err);
       setError(err instanceof Error ? err.message : 'Error updating initiative status');

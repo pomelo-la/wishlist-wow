@@ -240,6 +240,43 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  // Slack endpoints
+  async getSlackUsers(): Promise<SlackUsersResponse> {
+    return this.request<SlackUsersResponse>('/slack/users');
+  }
+
+  async sendSlackMessage(message: SlackMessageRequest): Promise<SlackMessageResponse> {
+    return this.request<SlackMessageResponse>('/slack/send-message', {
+      method: 'POST',
+      body: JSON.stringify(message),
+    });
+  }
+}
+
+export interface SlackUser {
+  id: string;
+  name: string;
+  real_name: string;
+  email?: string;
+  is_bot: boolean;
+}
+
+export interface SlackUsersResponse {
+  success: boolean;
+  users?: SlackUser[];
+  error?: string;
+}
+
+export interface SlackMessageRequest {
+  channel: string;
+  text: string;
+}
+
+export interface SlackMessageResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
 }
 
 export const apiService = new ApiService();
