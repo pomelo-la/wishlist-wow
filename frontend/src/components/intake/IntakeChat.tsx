@@ -97,7 +97,11 @@ const CONVERSATION_FLOW = [
   }
 ];
 
-export default function IntakeChat() {
+interface IntakeChatProps {
+  onNavigateToKanban?: () => void;
+}
+
+export default function IntakeChat({ onNavigateToKanban }: IntakeChatProps = {}) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState('');
@@ -399,71 +403,9 @@ ${data.client_segment || 'No especificado'}
     }
   };
 
-  const handleTestInitiative = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Collect all conversation content
-      const conversationContent = messages
-        .filter(msg => msg.type === 'user')
-        .map(msg => msg.content)
-        .join(' ');
-      
-      // Create a test message with the conversation content
-      const testMessage = `TESTEAR INICIATIVA - Contenido de la conversación: ${conversationContent}`;
-      
-      // Add the test message to chat
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: testMessage,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, newMessage]);
-      
-      // Send to agent to generate summary using validateIntake which triggers generateConfirmationSummary
-      const response = await agentService.validateIntake(testMessage, formData, {
-        conversation_history: messages
-          .filter(msg => msg.type === 'user')
-          .map(msg => ({ user: msg.content, timestamp: msg.timestamp }))
-      });
-      
-      if (response && response.confirmation_summary) {
-        // Add the summary as a bot message
-        const summaryMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: response.confirmation_summary,
-          section: 'summary',
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, summaryMessage]);
-        setExecutiveSummary(response.confirmation_summary);
-      }
-      
-    } catch (error) {
-      console.error('Error testing initiative:', error);
-      
-      // Add error message to chat
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: `Error al generar el resumen: ${error}`,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCompleteInitiative = async () => {
     console.log('handleCompleteInitiative called - navigating to Kanban');
-    console.log('Router object:', router);
-    console.log('Current pathname:', window.location.pathname);
     
     // Show success message
     const successMessage: Message = {
@@ -475,9 +417,13 @@ ${data.client_segment || 'No especificado'}
     };
     setMessages(prev => [...prev, successMessage]);
     
-    // Navigate to Kanban after 1 second
-    setTimeout(() => {
-      console.log('About to navigate to Kanban');
+    // Navigate to Kanban using callback or fallback to router
+    console.log('About to navigate to Kanban');
+    if (onNavigateToKanban) {
+      console.log('Using callback navigation');
+      onNavigateToKanban();
+    } else {
+      console.log('Using router navigation as fallback');
       try {
         router.push('/?tab=kanban');
         console.log('Navigation called to Kanban successfully');
@@ -487,7 +433,7 @@ ${data.client_segment || 'No especificado'}
         window.location.href = '/?tab=kanban';
         console.log('Fallback navigation used');
       }
-    }, 1000);
+    }
   };
 
   const handleContinueQuestions = () => {
@@ -553,26 +499,8 @@ ${data.client_segment || 'No especificado'}
           </div>
         )}
         
-        {/* Test and Complete Buttons */}
-        <div className="mt-4 space-y-2">
-          <button
-            onClick={handleTestInitiative}
-            disabled={isLoading}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 size={16} className="mr-2 animate-spin" />
-                Generando...
-              </>
-            ) : (
-              <>
-                <Plus size={16} className="mr-2" />
-                Testear Iniciativa
-              </>
-            )}
-          </button>
-          
+        {/* Complete Button */}
+        <div className="mt-4">
           <button
             onClick={() => {
               console.log('Button clicked - going to Kanban');

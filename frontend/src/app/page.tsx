@@ -39,7 +39,7 @@ export default function Home() {
         )}
         {activeView === 'intake' && (
           <div className="h-full">
-            <IntakeChat />
+            <IntakeChat onNavigateToKanban={() => setActiveView('kanban')} />
           </div>
         )}
       </main>
