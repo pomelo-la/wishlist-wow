@@ -12,7 +12,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/migrations:/docker-entrypoint-initdb.d/
+      # - ./backend/migrations:/docker-entrypoint-initdb.d/  # Disabled to avoid migration conflicts
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wishlist -d wishlist"]
       interval: 10s

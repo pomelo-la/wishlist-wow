@@ -96,6 +96,11 @@ if [ $? -ne 0 ]; then
 fi
 cd ..
 
+# Clean up any existing containers and volumes
+print_status "Cleaning up existing containers and volumes..."
+docker-compose -f docker-compose.db.yml down -v 2>/dev/null || true
+docker volume prune -f 2>/dev/null || true
+
 # Create backend config.env if it doesn't exist
 print_status "Setting up backend configuration..."
 if [ ! -f "backend/config.env" ]; then
@@ -139,15 +144,12 @@ print_success "Database started successfully!"
 
 # Wait for database to be ready
 print_status "Waiting for database to be ready..."
-sleep 5
-
-# Check if database is healthy
 for i in {1..30}; do
-    if docker exec wishlist-postgres pg_isready -U wishlist -d postgres > /dev/null 2>&1; then
+    if docker exec wishlist-postgres pg_isready -U wishlist -d postgres >/dev/null 2>&1; then
         break
     fi
     if [ $i -eq 30 ]; then
-        print_error "Database failed to become ready"
+        print_error "Database failed to start after 30 seconds"
         exit 1
     fi
     sleep 1
@@ -158,6 +160,13 @@ print_success "Database is ready!"
 # Create the wishlist database if it doesn't exist
 print_status "Creating wishlist database..."
 docker exec wishlist-postgres psql -U wishlist -d postgres -c "CREATE DATABASE wishlist;" 2>/dev/null || true
+
+# Ensure we can connect to the wishlist database
+print_status "Verifying database connection..."
+docker exec wishlist-postgres psql -U wishlist -d wishlist -c "SELECT 1;" >/dev/null 2>&1 || {
+    print_error "Failed to connect to wishlist database"
+    exit 1
+}
 
 # Create database schema
 print_status "Creating database schema..."

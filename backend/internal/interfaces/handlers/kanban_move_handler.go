@@ -89,7 +89,7 @@ func (h *KanbanMoveHandler) MoveInitiative(c *gin.Context) {
 
 	// Check if initiative exists and get full data for scoring
 	var initiative domain.Initiative
-	if err := h.db.Raw("SELECT id, title, summary, status, category, vertical, client_type, country, systemic_risk, economic_impact, experience_impact, competitive_approach FROM initiatives WHERE id = ?", initiativeID).Scan(&initiative).Error; err != nil {
+	if err := h.db.Raw("SELECT id, title, summary, status, category, vertical, client_type, country, systemic_risk, economic_impact, competitive_approach FROM initiatives WHERE id = ?", initiativeID).Scan(&initiative).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Initiative not found"})
 			return
