@@ -173,45 +173,35 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Initiatives table
+-- Initiatives table with all current fields
 CREATE TABLE IF NOT EXISTS initiatives (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(500) NOT NULL,
     summary TEXT,
     creator_id UUID REFERENCES users(id),
-    status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'loaded', 'in_review', 'in_estimation', 'evaluation_closed', 'prioritized')),
+    status VARCHAR(50) DEFAULT 'Backlog' CHECK (status IN ('Backlog', 'Iniciativas cargadas a revisar', 'Iniciativas a estimar', 'Priorizacion final', 'Roadmap del Q')),
 
-    -- Context
+    -- Legacy fields
     category VARCHAR(50) CHECK (category IN ('regulatory', 'risk', 'performance', 'value_prop', 'new_product')),
     vertical VARCHAR(50) CHECK (vertical IN ('banking', 'retail', 'government', 'healthcare', 'education')),
-    countries TEXT[], -- Array of country codes
+    countries TEXT[],
     client VARCHAR(255),
     client_type VARCHAR(50) CHECK (client_type IN ('top_issuer', 'major', 'medium', 'small', 'startup')),
-
-    -- Business case
     description TEXT,
     economic_impact_type VARCHAR(50) CHECK (economic_impact_type IN ('significant', 'moderate', 'low', 'hard_to_quantify')),
     economic_impact_note TEXT,
-
-    -- Experience impact
     improve_onboarding BOOLEAN DEFAULT false,
     reduce_friction BOOLEAN DEFAULT false,
     enhance_security BOOLEAN DEFAULT false,
     improve_performance BOOLEAN DEFAULT false,
     add_new_features BOOLEAN DEFAULT false,
     improve_accessibility BOOLEAN DEFAULT false,
-
-    -- Innovation and risk
     innovation_level VARCHAR(50) CHECK (innovation_level IN ('disruptive', 'incremental', 'parity')),
     systemic_risk VARCHAR(50) CHECK (systemic_risk IN ('blocker', 'high', 'medium', 'low')),
-
-    -- Technical estimation
     effort_weeks INTEGER,
     confidence_level INTEGER CHECK (confidence_level >= 1 AND confidence_level <= 10),
     dependencies TEXT,
     technical_risks TEXT,
-
-    -- Scoring (calculated automatically)
     category_score INTEGER,
     vertical_score INTEGER,
     client_score INTEGER,
@@ -221,7 +211,47 @@ CREATE TABLE IF NOT EXISTS initiatives (
     experience_score INTEGER,
     innovation_score INTEGER,
     total_score INTEGER,
-    score_explanation TEXT,
+    explanation TEXT,
+
+    -- New Kanban fields
+    quarter VARCHAR(50),
+    score INTEGER DEFAULT 0,
+    category_new VARCHAR(100),
+    vertical_new VARCHAR(100),
+    client_type_new VARCHAR(50),
+    country_new VARCHAR(50),
+    systemic_risk_new VARCHAR(50),
+    economic_impact_new VARCHAR(200),
+    economic_impact_description TEXT,
+    experience_impact_new TEXT[],
+    competitive_approach VARCHAR(100),
+    executive_summary TEXT,
+    roi INTEGER DEFAULT 0,
+    created_by VARCHAR(255),
+
+    -- Prod & IT fields
+    tech_seeds TEXT DEFAULT '0',
+    tech_certainty TEXT DEFAULT '0',
+    tech_notes TEXT DEFAULT '',
+    ux_seeds TEXT DEFAULT '0',
+    ux_certainty TEXT DEFAULT '0',
+    ux_cases TEXT DEFAULT '',
+    product_cases TEXT DEFAULT '',
+    product_providers TEXT DEFAULT '',
+    product_not_considered TEXT DEFAULT '',
+
+    -- Additional fields for workflow
+    assigned_to UUID REFERENCES users(id),
+    priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+    due_date TIMESTAMP WITH TIME ZONE,
+    tags TEXT[] DEFAULT '{}',
+    blockers TEXT[] DEFAULT '{}',
+    last_moved_at TIMESTAMP WITH TIME ZONE,
+    moved_by UUID REFERENCES users(id),
+    workflow_stage VARCHAR(50) DEFAULT 'initial',
+
+    -- Legacy fields for backward compatibility
+    description_legacy TEXT,
 
     -- Audit
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -264,14 +294,100 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Kanban activities table for tracking movements
+CREATE TABLE IF NOT EXISTS kanban_activities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    initiative_id UUID NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
+    from_status VARCHAR(50),
+    to_status VARCHAR(50) NOT NULL,
+    moved_by UUID REFERENCES users(id),
+    moved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    notes TEXT
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_initiatives_status ON initiatives(status);
 CREATE INDEX IF NOT EXISTS idx_initiatives_category ON initiatives(category);
 CREATE INDEX IF NOT EXISTS idx_initiatives_creator ON initiatives(creator_id);
 CREATE INDEX IF NOT EXISTS idx_initiatives_created_at ON initiatives(created_at);
+CREATE INDEX IF NOT EXISTS idx_initiatives_assigned_to ON initiatives(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_initiatives_due_date ON initiatives(due_date);
+CREATE INDEX IF NOT EXISTS idx_initiatives_priority ON initiatives(priority);
+CREATE INDEX IF NOT EXISTS idx_initiatives_workflow_stage ON initiatives(workflow_stage);
 CREATE INDEX IF NOT EXISTS idx_messages_initiative ON messages(initiative_id);
 CREATE INDEX IF NOT EXISTS idx_suggestions_initiative ON suggestions(initiative_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_initiative ON audit_logs(initiative_id);
+CREATE INDEX IF NOT EXISTS idx_kanban_activities_initiative ON kanban_activities(initiative_id);
+
+-- Add constraints for new Kanban fields
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_category_new CHECK (category_new IN (
+    'Mandates / Regulatorio / Riesgo',
+    'Mejora de performance',
+    'Value Prop',
+    'Lanzamiento nuevo producto'
+));
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_vertical_new CHECK (vertical_new IN (
+    'Processing',
+    'Core',
+    'BIN Sponsor',
+    'Card Management & Logistics',
+    'Tokenización',
+    'Fraud Tools',
+    'Platform experience'
+));
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_client_type_new CHECK (client_type_new IN (
+    'Todos',
+    'Top Issuer',
+    'Tier 1',
+    'Tier 2',
+    'Tier 3'
+));
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_country_new CHECK (country_new IN (
+    'Todos',
+    'Argentina',
+    'Brasil',
+    'Chile',
+    'Colombia',
+    'Mexico',
+    'ROLA'
+));
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_systemic_risk_new CHECK (systemic_risk_new IN (
+    'Bloqueante',
+    'Alto',
+    'Medio',
+    'Bajo',
+    'N/A'
+));
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_economic_impact_new CHECK (economic_impact_new IN (
+    'Aumento significativo en revenue o nueva linea revenue',
+    'Aumento moderado en revenue existente',
+    'Impacto menor o dificil de cuantificar'
+));
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_competitive_approach CHECK (competitive_approach IN (
+    'Disrrustivo / Innovador',
+    'Mejora incremental',
+    'Paridad con competencia'
+));
+
+-- Add constraints for numeric fields
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_score_range CHECK (score >= 0 AND score <= 100);
+
+ALTER TABLE initiatives 
+ADD CONSTRAINT IF NOT EXISTS chk_roi_positive CHECK (roi >= 0);
 "
 
 if [ \$? -eq 0 ]; then
@@ -291,17 +407,26 @@ INSERT INTO users (id, email, name, role) VALUES
     ('550e8400-e29b-41d4-a716-446655440002', 'reviewer@wishlist.com', 'Reviewer User', 'reviewer')
 ON CONFLICT (email) DO NOTHING;
 
--- Insert sample initiative
+-- Insert sample initiative with new Kanban structure
 INSERT INTO initiatives (
-    id, title, summary, creator_id, status, category, vertical, 
-    countries, client, client_type, description, economic_impact_type,
-    innovation_level, systemic_risk
+    id, title, summary, creator_id, status, 
+    -- Legacy fields
+    category, vertical, countries, client, client_type, description, economic_impact_type,
+    innovation_level, systemic_risk,
+    -- New Kanban fields
+    quarter, score, category_new, vertical_new, client_type_new, country_new,
+    systemic_risk_new, economic_impact_new, economic_impact_description,
+    experience_impact_new, competitive_approach, executive_summary, roi, created_by,
+    -- Prod & IT fields
+    tech_seeds, tech_certainty, tech_notes, ux_seeds, ux_certainty, ux_cases,
+    product_cases, product_providers, product_not_considered
 ) VALUES (
     '660e8400-e29b-41d4-a716-446655440000',
     'Mejora del Sistema de Autenticación',
     'Implementar autenticación de dos factores para mejorar la seguridad',
     '550e8400-e29b-41d4-a716-446655440001',
-    'draft',
+    'Backlog',
+    -- Legacy fields
     'risk',
     'banking',
     ARRAY['brazil', 'mexico'],
@@ -310,7 +435,25 @@ INSERT INTO initiatives (
     'Necesitamos implementar 2FA para cumplir con nuevas regulaciones de seguridad bancaria',
     'moderate',
     'incremental',
-    'medium'
+    'medium',
+    -- New Kanban fields
+    'Q1 2024',
+    0,
+    'Mandates / Regulatorio / Riesgo',
+    'Processing',
+    'Top Issuer',
+    'Brasil',
+    'Alto',
+    'Aumento significativo en revenue o nueva linea revenue',
+    'Mejora significativa en seguridad bancaria',
+    ARRAY['Contact Rate', 'Aprobación'],
+    'Disrrustivo / Innovador',
+    'Implementación de 2FA para cumplir con regulaciones',
+    250,
+    'Test User',
+    -- Prod & IT fields
+    '5', '85', 'Notas técnicas importantes', '3', '90', 'Casos de uso UX',
+    'Casos de producto', 'Proveedores involucrados', 'Lo que no se contempla'
 ) ON CONFLICT (id) DO NOTHING;
 " 2>/dev/null || true
 
