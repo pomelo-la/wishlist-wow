@@ -41,6 +41,7 @@ func (s *Server) setupRoutes() {
 	agentHandler := handlers.NewAgentHandler(s.db, agentService)
 	slackHandler := handlers.NewSlackHandler()
 	prodItHandler := handlers.NewProdItHandler(s.db)
+	roiHandler := handlers.NewROIHandler(s.db)
 
 	// Middleware
 	s.router.Use(middleware.CORSMiddleware())
@@ -97,6 +98,9 @@ func (s *Server) setupRoutes() {
 			initiatives.GET("/:id/prod-it", prodItHandler.GetProdItData)
 			initiatives.PUT("/:id/prod-it", prodItHandler.UpdateProdItData)
 			initiatives.POST("/:id/prod-it", prodItHandler.CreateProdItData)
+
+			// ROI calculation
+			initiatives.POST("/:id/roi", roiHandler.CalculateROI)
 		}
 
 		// New Kanban CRUD routes
