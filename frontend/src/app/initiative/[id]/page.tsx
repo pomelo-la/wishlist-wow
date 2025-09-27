@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { mockInitiatives } from '@/data/mockData';
 import { Initiative } from '@/types/initiative';
+import { apiService, Initiative as ApiInitiative } from '@/services/api';
 import Header from '@/components/layout/Header';
 import InitiativeActivityLog from '@/components/activity/InitiativeActivityLog';
 import { 
@@ -46,7 +46,8 @@ export default function InitiativeEvaluationPage() {
   const [reviewMessages, setReviewMessages] = useState<ReviewMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [structuredFields, setStructuredFields] = useState({
     effortDays: 0,
@@ -109,12 +110,77 @@ export default function InitiativeEvaluationPage() {
     'Printing & Logistics', 'Customer Support', 'Commercial'
   ];
 
-  // Cargar datos inmediatamente sin spinner
-      const foundInitiative = mockInitiatives.find(i => i.id === params.id);
-  if (!initiative && foundInitiative) {
-    setInitiative(foundInitiative);
-    
-    // Cargar mensajes de revisión simulados
+  // Load initiative data from API
+  useEffect(() => {
+    const loadInitiative = async () => {
+      if (!params.id) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await apiService.getInitiative(params.id as string);
+        const apiInitiative = response.data;
+        
+        // Map API initiative to frontend format
+        const mappedInitiative: Initiative = {
+          id: apiInitiative.id,
+          title: apiInitiative.title,
+          description: apiInitiative.description,
+          status: apiInitiative.status,
+          createdBy: apiInitiative.created_by,
+          createdAt: new Date(apiInitiative.created_at),
+          updatedAt: new Date(apiInitiative.updated_at),
+          quarter: apiInitiative.quarter,
+          score: apiInitiative.score,
+          category: apiInitiative.category,
+          vertical: apiInitiative.vertical,
+          clientType: apiInitiative.client_type,
+          country: apiInitiative.country,
+          systemicRisk: apiInitiative.systemic_risk,
+          economicImpact: apiInitiative.economic_impact,
+          economicImpactDescription: apiInitiative.economic_impact_description,
+          experienceImpact: apiInitiative.experience_impact,
+          competitiveApproach: apiInitiative.competitive_approach,
+          executiveSummary: apiInitiative.executive_summary,
+          roi: apiInitiative.roi,
+          // Map additional fields for compatibility
+          product: apiInitiative.vertical,
+          summary: apiInitiative.description,
+        };
+        
+        setInitiative(mappedInitiative);
+        
+        // Load messages from API
+        try {
+          const messages = await apiService.getInitiativeMessages(params.id as string);
+          setReviewMessages(messages.map((msg: any) => ({
+            id: msg.id,
+            author: msg.author || 'Sistema',
+            role: msg.role || 'business',
+            content: msg.content,
+            tags: msg.tags || [],
+            timestamp: new Date(msg.timestamp || msg.created_at)
+          })));
+        } catch (msgError) {
+          console.warn('Could not load messages:', msgError);
+          // Set empty messages if API fails
+          setReviewMessages([]);
+        }
+        
+      } catch (err) {
+        console.error('Error loading initiative:', err);
+        setError(err instanceof Error ? err.message : 'Error loading initiative');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitiative();
+  }, [params.id]);
+
+  // Cargar mensajes de revisión simulados (fallback)
+  if (!initiative && !isLoading && !error) {
     setReviewMessages([
       {
         id: '1',
@@ -320,8 +386,43 @@ export default function InitiativeEvaluationPage() {
     return 'bg-red-100 text-red-800 border-red-200';
   };
 
-  if (!initiative) {
+  if (isLoading) {
     return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando iniciativa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mr-4"
+          >
+            Reintentar
+          </button>
+          <button 
+            onClick={() => router.push('/')}
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Volver al dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!initiative) {
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
@@ -366,7 +467,7 @@ export default function InitiativeEvaluationPage() {
                 <div className="flex items-center space-x-2">
                   <User size={16} className="text-gray-500" />
                   <span className="text-sm text-gray-600">{initiative?.createdBy || 'Juan Pérez'}</span>
-        </div>
+                </div>
 
                 <div className="flex items-center space-x-2">
                   <Calendar size={16} className="text-gray-500" />
@@ -376,7 +477,7 @@ export default function InitiativeEvaluationPage() {
                 <div className="flex items-center space-x-2">
                   <Target size={16} className="text-gray-500" />
                   <span className="text-sm text-gray-600">{initiative?.quarter || 'Q2'}</span>
-                </div>
+                  </div>
                 
                 <div className="flex items-center space-x-2">
                   <Zap size={16} className="text-gray-500" />

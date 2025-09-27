@@ -64,7 +64,7 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
     const actions = [];
 
     switch (initiative.status) {
-      case 'loaded':
+      case 'Backlog':
         // Creator can close directly after seeing summary
         if (currentUser === initiative.createdBy || currentUser === 'Admin') {
           actions.push({ 
@@ -77,43 +77,43 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
         // Business can take for review
         actions.push({ 
           label: 'Tomar para revisión', 
-          action: () => onStatusChange?.(initiative.id, 'business-review'),
+          action: () => onStatusChange?.(initiative.id, 'Iniciativas cargadas a revisar'),
           icon: ArrowRight,
           color: 'bg-green-500 hover:bg-green-600' 
         });
         break;
         
-      case 'business-review':
+      case 'Iniciativas cargadas a revisar':
         actions.push({ 
           label: 'Pasar a evaluación técnica', 
-          action: () => onStatusChange?.(initiative.id, 'product-review'),
+          action: () => onStatusChange?.(initiative.id, 'Iniciativas a estimar'),
           icon: ArrowRight,
           color: 'bg-purple-500 hover:bg-purple-600' 
         });
         break;
         
-      case 'product-review':
+      case 'Iniciativas a estimar':
         actions.push({ 
           label: 'Cerrar evaluación', 
-          action: () => onStatusChange?.(initiative.id, 'closure'),
+          action: () => onStatusChange?.(initiative.id, 'Priorizacion final'),
           icon: CheckCircle,
           color: 'bg-orange-500 hover:bg-orange-600' 
         });
         break;
         
-      case 'closure':
+      case 'Priorizacion final':
         actions.push({ 
           label: 'Aplicar ponderación', 
-          action: () => onStatusChange?.(initiative.id, 'scoring'),
+          action: () => onStatusChange?.(initiative.id, 'Roadmap del Q'),
           icon: ArrowRight,
           color: 'bg-indigo-500 hover:bg-indigo-600' 
         });
         break;
         
-      case 'scoring':
+      case 'Roadmap del Q':
         actions.push({ 
-          label: 'Priorizar Q1', 
-          action: () => onStatusChange?.(initiative.id, 'prioritized'),
+          label: 'Iniciativa priorizada', 
+          action: () => onStatusChange?.(initiative.id, 'Roadmap del Q'),
           icon: CheckCircle,
           color: 'bg-green-500 hover:bg-green-600' 
         });
@@ -127,7 +127,7 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
 
   const handleCardClick = () => {
     // Navigate to dedicated evaluation page
-    if (['loaded', 'business-review', 'product-review'].includes(initiative.status)) {
+    if (['Backlog', 'Iniciativas cargadas a revisar', 'Iniciativas a estimar'].includes(initiative.status)) {
       router.push(`/initiative/${initiative.id}`);
     }
   };

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { mockInitiatives } from '@/data/mockData';
+import { useState, useMemo, useEffect } from 'react';
 import KanbanCard from './KanbanCard';
 import EvaluationView from '@/components/evaluation/EvaluationView';
 import { Plus, Filter, MoreHorizontal } from 'lucide-react';
 import { Initiative } from '@/types/initiative';
+import { apiService, Initiative as ApiInitiative } from '@/services/api';
 import {
   DndContext,
   DragEndEvent,
@@ -72,9 +72,11 @@ function DroppableColumn({ status, title, headerColor, children, initiativeCount
 }
 
 export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
-  const [initiatives, setInitiatives] = useState(mockInitiatives);
+  const [initiatives, setInitiatives] = useState<Initiative[]>([]);
   const [selectedInitiativeForEvaluation, setSelectedInitiativeForEvaluation] = useState<Initiative | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -83,6 +85,55 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
       },
     })
   );
+
+  // Load initiatives from API
+  useEffect(() => {
+    const loadInitiatives = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await apiService.getInitiatives({ limit: 100 });
+        const mappedInitiatives = response.data.map(mapApiInitiativeToInitiative);
+        setInitiatives(mappedInitiatives);
+      } catch (err) {
+        console.error('Error loading initiatives:', err);
+        setError(err instanceof Error ? err.message : 'Error loading initiatives');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitiatives();
+  }, []);
+
+  // Map API initiative to frontend initiative format
+  const mapApiInitiativeToInitiative = (apiInitiative: ApiInitiative): Initiative => {
+    return {
+      id: apiInitiative.id,
+      title: apiInitiative.title,
+      description: apiInitiative.description,
+      status: apiInitiative.status,
+      createdBy: apiInitiative.created_by,
+      createdAt: new Date(apiInitiative.created_at),
+      updatedAt: new Date(apiInitiative.updated_at),
+      quarter: apiInitiative.quarter,
+      score: apiInitiative.score,
+      category: apiInitiative.category,
+      vertical: apiInitiative.vertical,
+      clientType: apiInitiative.client_type,
+      country: apiInitiative.country,
+      systemicRisk: apiInitiative.systemic_risk,
+      economicImpact: apiInitiative.economic_impact,
+      economicImpactDescription: apiInitiative.economic_impact_description,
+      experienceImpact: apiInitiative.experience_impact,
+      competitiveApproach: apiInitiative.competitive_approach,
+      executiveSummary: apiInitiative.executive_summary,
+      roi: apiInitiative.roi,
+      // Map additional fields that might be needed
+      product: apiInitiative.vertical, // Map vertical to product for compatibility
+      summary: apiInitiative.description, // Map description to summary for compatibility
+    };
+  };
 
   const handleStatusChange = (initiativeId: string, newStatus: string) => {
     setInitiatives(prev => 
@@ -131,7 +182,7 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (!over) return;
@@ -169,14 +220,26 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
       initiative: currentInitiative.title
     });
 
-    // Actualizar la iniciativa con el nuevo estado
-    setInitiatives(prev => 
-      prev.map(initiative => 
-        initiative.id === initiativeId 
-          ? { ...initiative, status: newStatus as any, updatedAt: new Date() }
-          : initiative
-      )
-    );
+    try {
+      // Update initiative status via API
+      await apiService.moveInitiative(initiativeId, {
+        new_status: newStatus,
+        previous_status: currentInitiative.status,
+        moved_by: 'user' // TODO: Get actual user ID
+      });
+
+      // Update local state
+      setInitiatives(prev => 
+        prev.map(initiative => 
+          initiative.id === initiativeId 
+            ? { ...initiative, status: newStatus as any, updatedAt: new Date() }
+            : initiative
+        )
+      );
+    } catch (err) {
+      console.error('Error updating initiative status:', err);
+      setError(err instanceof Error ? err.message : 'Error updating initiative status');
+    }
 
     setActiveId(null);
   };
@@ -197,37 +260,31 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
 
   const statusConfig = [
     {
-      key: 'loaded',
+      key: 'Backlog',
       title: 'Iniciativa Cargada',
       color: 'bg-yellow-50 border-yellow-200',
       headerColor: 'bg-yellow-100'
     },
     {
-      key: 'business-review',
+      key: 'Iniciativas cargadas a revisar',
       title: 'Revisión Negocio',
       color: 'bg-blue-50 border-blue-200',
       headerColor: 'bg-blue-100'
     },
     {
-      key: 'product-review',
+      key: 'Iniciativas a estimar',
       title: 'Revisión Producto/Tech/UX',
       color: 'bg-purple-50 border-purple-200',
       headerColor: 'bg-purple-100'
     },
     {
-      key: 'closure',
+      key: 'Priorizacion final',
       title: 'Cierre',
       color: 'bg-orange-50 border-orange-200',
       headerColor: 'bg-orange-100'
     },
     {
-      key: 'scoring',
-      title: 'Ponderación',
-      color: 'bg-indigo-50 border-indigo-200',
-      headerColor: 'bg-indigo-100'
-    },
-    {
-      key: 'prioritized',
+      key: 'Roadmap del Q',
       title: 'Priorizada',
       color: 'bg-green-50 border-green-200',
       headerColor: 'bg-green-100'
@@ -237,6 +294,34 @@ export default function KanbanBoard({ searchQuery = '' }: KanbanBoardProps) {
   const getInitiativesByStatus = (status: string) => {
     return filteredInitiatives.filter(initiative => initiative.status === status);
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando iniciativas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-red-500 text-lg mb-4">Error</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DndContext

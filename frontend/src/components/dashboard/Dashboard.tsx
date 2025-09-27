@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ClipboardList, 
   Upload, 
@@ -12,7 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 import MetricCard from '@/components/ui/MetricCard';
-import { getInitiativesMetrics, mockInitiatives } from '@/data/mockData';
+import { apiService, Initiative as ApiInitiative } from '@/services/api';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -43,7 +43,50 @@ export default function Dashboard() {
     minScore: 1
   });
 
-  const metrics = getInitiativesMetrics();
+  const [initiatives, setInitiatives] = useState<ApiInitiative[]>([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    total_initiatives: 0,
+    draft_initiatives: 0,
+    in_review_initiatives: 0,
+    prioritized_initiatives: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load data from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const [initiativesResponse, statsResponse] = await Promise.all([
+          apiService.getInitiatives({ limit: 100 }),
+          apiService.getDashboardStats()
+        ]);
+        
+        setInitiatives(initiativesResponse.data);
+        setDashboardStats(statsResponse);
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Error loading dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Calculate metrics from API data
+  const metrics = {
+    total: dashboardStats.total_initiatives,
+    loaded: initiatives.filter(i => i.status === 'loaded').length,
+    businessReview: initiatives.filter(i => i.status === 'business-review').length,
+    productReview: initiatives.filter(i => i.status === 'product-review').length,
+    closure: initiatives.filter(i => i.status === 'closure').length,
+    prioritized: dashboardStats.prioritized_initiatives
+  };
 
   const categoryData = {
     labels: ['Mandatos', 'Performance', 'Value Prop', 'Nuevo Producto'],
@@ -68,7 +111,7 @@ export default function Dashboard() {
     ],
   };
 
-  const filteredInitiatives = mockInitiatives.filter(initiative => {
+  const filteredInitiatives = initiatives.filter(initiative => {
     return (
       (!selectedFilters.product || initiative.vertical === selectedFilters.product) &&
       (!selectedFilters.country || initiative.country === selectedFilters.country) &&
@@ -83,6 +126,34 @@ export default function Dashboard() {
       [filterType]: value
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-500 text-lg mb-4">Error</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -286,7 +357,7 @@ export default function Dashboard() {
                         {initiative.title}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {initiative.summary.substring(0, 60)}...
+                        {initiative.description.substring(0, 60)}...
                       </div>
                     </div>
                   </td>
