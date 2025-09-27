@@ -1,7 +1,7 @@
 'use client';
 
 import { Initiative } from '@/types/initiative';
-import { Calendar, User, Target, CheckCircle, ArrowRight, Eye, Clock, Star, MoreHorizontal } from 'lucide-react';
+import { Calendar, User, Target, CheckCircle, ArrowRight, Eye, Clock, Star, MoreHorizontal, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -56,6 +56,14 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
     if (score >= 90) return 'text-red-500';
     if (score >= 80) return 'text-orange-500';
     if (score >= 70) return 'text-yellow-500';
+    return 'text-gray-500';
+  };
+
+  const getROIColor = (roi: number) => {
+    if (roi >= 300) return 'text-green-600';
+    if (roi >= 200) return 'text-green-500';
+    if (roi >= 100) return 'text-blue-500';
+    if (roi >= 50) return 'text-yellow-500';
     return 'text-gray-500';
   };
 
@@ -182,6 +190,14 @@ export default function KanbanCard({ initiative, onStatusChange, onViewDetails }
                 <Star size={12} className={`mr-1 ${getPriorityColor(initiative.score)}`} />
                 <span className={`text-xs font-semibold ${getPriorityColor(initiative.score)}`}>
                   {initiative.score}
+                </span>
+              </div>
+            )}
+            {initiative.roi !== undefined && initiative.roi !== null && (
+              <div className="flex items-center">
+                <TrendingUp size={12} className={`mr-1 ${getROIColor(initiative.roi)}`} />
+                <span className={`text-xs font-semibold ${getROIColor(initiative.roi)}`}>
+                  {initiative.roi}%
                 </span>
               </div>
             )}

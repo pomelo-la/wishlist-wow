@@ -51,8 +51,7 @@ func (h *AgentHandler) IntakeIntervention(c *gin.Context) {
 // POST /agent/intake/complete
 func (h *AgentHandler) CompleteIntake(c *gin.Context) {
 	var req struct {
-		Initiative *domain.Initiative     `json:"initiative" binding:"required"`
-		Context    map[string]interface{} `json:"context"`
+		Context map[string]interface{} `json:"context" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -104,15 +103,15 @@ func (h *AgentHandler) CompleteIntake(c *gin.Context) {
 		}
 	}
 
-	// Create initiative in database using raw SQL to match initiative_v2 table
+	// Create initiative in database using raw SQL to match initiatives table
 	result := h.db.Exec(`
-		INSERT INTO initiative_v2 (
-			id, title, description, status, "createdBy", "createdAt", "updatedAt",
-			quarter, score, category, vertical, "clientType", country,
-			"systemicRisk", "economicImpact", "economicImpactDescription",
-			"experienceImpact", "competitiveApproach", "executiveSummary", roi
+		INSERT INTO initiatives (
+			id, title, description, status, created_by,
+			quarter, score, category_new, vertical_new, client_type_new, country_new,
+			systemic_risk_new, economic_impact_new, economic_impact_description,
+			experience_impact_new, competitive_approach, executive_summary, roi
 		) VALUES (
-			?, ?, ?, ?, ?, NOW(), NOW(),
+			?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?, ?,
 			?, ?, ?,
 			?, ?, ?, ?
