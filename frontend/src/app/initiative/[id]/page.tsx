@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Initiative } from '@/types/initiative';
 import { apiService, Initiative as ApiInitiative } from '@/services/api';
+import { slackService } from '@/services/slackService';
 import Header from '@/components/layout/Header';
 import InitiativeActivityLog from '@/components/activity/InitiativeActivityLog';
 import SlackMentionInput from '@/components/common/SlackMentionInput';
@@ -277,17 +278,58 @@ export default function InitiativeEvaluationPage() {
     setDependencies(prev => prev.filter(dep => dep.id !== dependencyId));
   };
 
-  const sendDependency = (dependencyId: string) => {
+  const sendDependency = async (dependencyId: string) => {
     const dependency = dependencies.find(dep => dep.id === dependencyId);
     if (dependency && dependency.area && dependency.dependencyRef) {
-      console.log('Enviando dependencia:', dependency);
-      // Aquí se enviaría la dependencia al backend
-      alert(`Dependencia enviada: ${dependency.area} - ${dependency.dependencyRef}`);
-      
-      // Marcar como enviada (agregar flag)
-      setDependencies(prev => prev.map(dep => 
-        dep.id === dependencyId ? { ...dep, sent: true } : dep
-      ));
+      try {
+        console.log('Enviando dependencia:', dependency);
+        
+        // Extraer el usuario mencionado del texto
+        const mentionMatch = dependency.dependencyRef.match(/@([^\s]+)/);
+        const targetUser = mentionMatch ? mentionMatch[1] : null;
+        
+        console.log('Texto de referencia:', dependency.dependencyRef);
+        console.log('Usuario extraído:', targetUser);
+        
+        // Crear el mensaje para Slack
+        const slackMessage = `🔗 **Nueva Dependencia de Iniciativa**
+        
+**Iniciativa:** ${initiative?.title || 'Iniciativa sin título'}
+**Área:** ${dependency.area}
+**Referencia:** ${dependency.dependencyRef}
+**URL:** ${window.location.href}
+
+Por favor, revisa esta dependencia y proporciona feedback.`;
+
+        // Determinar el canal de destino
+        let targetChannel = '#general'; // Canal por defecto
+        if (targetUser) {
+          // Si hay un usuario mencionado, enviar como mensaje directo
+          targetChannel = `@${targetUser}`;
+        }
+
+        console.log('Enviando a canal:', targetChannel);
+        
+        // Enviar mensaje a Slack
+        const result = await slackService.sendMessage(targetChannel, slackMessage);
+        
+        if (result.success) {
+          console.log('Dependencia enviada exitosamente a Slack');
+          
+          // Marcar como enviada
+          setDependencies(prev => prev.map(dep => 
+            dep.id === dependencyId ? { ...dep, sent: true } : dep
+          ));
+          
+          // Mostrar mensaje de éxito
+          alert(`✅ Dependencia enviada exitosamente a Slack: ${dependency.area} - ${dependency.dependencyRef}`);
+        } else {
+          throw new Error(result.error || 'Error desconocido');
+        }
+      } catch (error) {
+        console.error('Error enviando dependencia a Slack:', error);
+        alert(`❌ Error enviando dependencia: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      }
     }
   };
 

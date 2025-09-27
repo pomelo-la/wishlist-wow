@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { apiService, SlackUser } from '@/services/api';
+import { slackService } from '@/services/slackService';
+import { SlackUser } from '@/services/api';
 import { Search, X, User } from 'lucide-react';
 
 interface SlackMentionInputProps {
@@ -34,7 +35,7 @@ export default function SlackMentionInput({
   const loadSlackUsers = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getSlackUsers();
+      const response = await slackService.getUsers();
       if (response.success && response.users) {
         setSlackUsers(response.users);
       } else {
@@ -95,7 +96,14 @@ export default function SlackMentionInput({
         setShowDropdown(false);
       }
     } else {
-      setShowDropdown(false);
+      // Si no hay @, buscar automáticamente después de 2 caracteres
+      if (newValue.trim().length >= 2) {
+        setMentionStart(-1); // No hay @, es búsqueda libre
+        setSearchTerm(newValue.trim());
+        setShowDropdown(true);
+      } else {
+        setShowDropdown(false);
+      }
     }
     
     onChange(newValue);
@@ -122,6 +130,7 @@ export default function SlackMentionInput({
 
   const selectUser = (user: SlackUser) => {
     if (mentionStart !== -1) {
+      // Caso con @: reemplazar el texto después del @
       const beforeMention = value.substring(0, mentionStart);
       const afterMention = value.substring(mentionStart + 1 + searchTerm.length);
       const mention = `@${user.real_name}`;
@@ -138,6 +147,22 @@ export default function SlackMentionInput({
         if (inputRef.current) {
           const newCursorPosition = beforeMention.length + mention.length;
           inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+          inputRef.current.focus();
+        }
+      }, 0);
+    } else {
+      // Caso sin @: reemplazar todo el texto con la mención
+      const mention = `@${user.real_name}`;
+      onChange(mention);
+      
+      setShowDropdown(false);
+      setMentionStart(-1);
+      setSearchTerm('');
+      
+      // Enfocar el input después de la selección
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.setSelectionRange(mention.length, mention.length);
           inputRef.current.focus();
         }
       }, 0);
@@ -163,7 +188,7 @@ export default function SlackMentionInput({
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        placeholder={showDropdown ? "Escribir nombre para buscar..." : placeholder}
+        placeholder={showDropdown ? "Escribir nombre para buscar usuarios de Slack..." : placeholder}
         className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-black ${showDropdown ? 'border-blue-500' : ''} ${className}`}
         rows={3}
       />
