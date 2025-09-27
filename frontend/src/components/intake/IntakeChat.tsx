@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Send, Plus, Check, AlertCircle, Loader2 } from 'lucide-react';
 import AgentService, { IntakeProgress } from '@/services/agentService';
 import IntakeProgressBar from './IntakeProgressBar';
@@ -97,6 +98,7 @@ const CONVERSATION_FLOW = [
 ];
 
 export default function IntakeChat() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState('');
   const [formData, setFormData] = useState<Partial<FormData>>({});
@@ -286,6 +288,7 @@ export default function IntakeChat() {
         setMessages(prev => [...prev, completionMessage]);
         
         // Generate executive summary
+        console.log('About to generate executive summary with data:', updatedFormData);
         await generateExecutiveSummary(updatedFormData);
       }
     }
@@ -351,6 +354,7 @@ export default function IntakeChat() {
   };
 
   const generateExecutiveSummary = async (data: Partial<FormData>) => {
+    console.log('generateExecutiveSummary called with data:', data);
     try {
       // Create a more human-like executive summary
       const summary = `
@@ -380,6 +384,7 @@ ${data.client_segment || 'No especificado'}
 
       setExecutiveSummary(summary);
       setIsComplete(true);
+      console.log('Executive summary generated, isComplete set to true');
       
       const summaryMessage: Message = {
         id: 'executive-summary',
@@ -456,45 +461,33 @@ ${data.client_segment || 'No especificado'}
   };
 
   const handleCompleteInitiative = async () => {
-    if (!isComplete) return;
-
-    try {
-      setIsLoading(true);
-      const backendInitiative = AgentService.mapToBackendFormat(formData);
-      const result = await agentService.completeIntake(backendInitiative, formData);
-      
-      // Show success message
-      const successMessage: Message = {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: `¡Excelente! Tu iniciativa "${result.initiative.title}" ha sido creada exitosamente. ID: ${result.initiative.id}`,
-        section: 'success',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, successMessage]);
-      
-      // Reset form after 3 seconds
-      setTimeout(() => {
-        setFormData({});
-        setMessages([]);
-        setIsComplete(false);
-        setExecutiveSummary('');
-        initializeChat();
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Error completing initiative:', error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: "Hubo un error creando la iniciativa. Por favor intenta de nuevo.",
-        section: 'error',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('handleCompleteInitiative called - navigating to Kanban');
+    console.log('Router object:', router);
+    console.log('Current pathname:', window.location.pathname);
+    
+    // Show success message
+    const successMessage: Message = {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: '¡Perfecto! Te estoy llevando al Kanban para que puedas ver y gestionar tus iniciativas. 🚀',
+      section: 'success',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, successMessage]);
+    
+    // Navigate to Kanban after 1 second
+    setTimeout(() => {
+      console.log('About to navigate to Kanban');
+      try {
+        router.push('/?tab=kanban');
+        console.log('Navigation called to Kanban successfully');
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback: try window.location
+        window.location.href = '/?tab=kanban';
+        console.log('Fallback navigation used');
+      }
+    }, 1000);
   };
 
   const handleContinueQuestions = () => {
@@ -581,21 +574,14 @@ ${data.client_segment || 'No especificado'}
           </button>
           
           <button
-            onClick={handleCompleteInitiative}
-            disabled={isLoading}
-            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            onClick={() => {
+              console.log('Button clicked - going to Kanban');
+              handleCompleteInitiative();
+            }}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center"
           >
-            {isLoading ? (
-              <>
-                <Loader2 size={16} className="mr-2 animate-spin" />
-                Creando...
-              </>
-            ) : (
-              <>
-                <Check size={16} className="mr-2" />
-                Crear Iniciativa
-              </>
-            )}
+            <Check size={16} className="mr-2" />
+            Crear Iniciativa
           </button>
         </div>
       </div>
